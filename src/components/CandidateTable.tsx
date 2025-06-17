@@ -20,7 +20,7 @@ interface Candidate {
   company: string;
   location: string;
   email: string;
-  linkedin_url: string;
+  linkedin_url: string | null;
   experience_years: number;
   skills: string[];
   created_at: string;
@@ -101,11 +101,13 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
                     <Button variant="outline" size="sm" asChild>
                       <a href={`mailto:${candidate.email}`}>Contact</a>
                     </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
-                        LinkedIn
-                      </a>
-                    </Button>
+                    {candidate.linkedin_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
+                          LinkedIn
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

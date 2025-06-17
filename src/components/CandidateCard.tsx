@@ -11,7 +11,7 @@ interface Candidate {
   company: string;
   location: string;
   email: string;
-  linkedin_url: string;
+  linkedin_url: string | null;
   experience_years: number;
   skills: string[];
   created_at: string;
@@ -74,12 +74,14 @@ const CandidateCard = ({ candidate }: CandidateCardProps) => {
               Contact
             </a>
           </Button>
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4 mr-1" />
-              LinkedIn
-            </a>
-          </Button>
+          {candidate.linkedin_url && (
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-1" />
+                LinkedIn
+              </a>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

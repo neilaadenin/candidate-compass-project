@@ -6,18 +6,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import CandidateCard from "@/components/CandidateCard";
 import CandidateTable from "@/components/CandidateTable";
-import { mockCandidates } from "@/data/mockCandidates";
+import { useCandidates } from "@/hooks/useCandidates";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
+  const { candidates, loading, error } = useCandidates();
 
-  const totalCandidates = mockCandidates.length;
-  const avgExperience = Math.round(
-    mockCandidates.reduce((sum, candidate) => sum + candidate.experience_years, 0) / totalCandidates
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Data</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalCandidates = candidates.length;
+  const avgExperience = totalCandidates > 0 
+    ? Math.round(candidates.reduce((sum, candidate) => sum + candidate.experience_years, 0) / totalCandidates)
+    : 0;
 
   // Get unique skills count
-  const allSkills = mockCandidates.flatMap(candidate => candidate.skills);
+  const allSkills = candidates.flatMap(candidate => candidate.skills);
   const uniqueSkills = new Set(allSkills).size;
 
   return (
@@ -113,7 +140,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             {viewMode === "table" ? (
-              <CandidateTable candidates={mockCandidates} />
+              <CandidateTable candidates={candidates} />
             ) : (
               <div className="space-y-4">
                 <div className="relative">
@@ -124,7 +151,7 @@ const Index = () => {
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mockCandidates.map((candidate) => (
+                  {candidates.map((candidate) => (
                     <CandidateCard key={candidate.id} candidate={candidate} />
                   ))}
                 </div>
@@ -134,10 +161,10 @@ const Index = () => {
         </Card>
 
         {/* Footer Note */}
-        <div className="mt-8 p-4 border border-dashed border-muted-foreground/20 rounded-lg bg-muted/20">
-          <p className="text-sm text-muted-foreground text-center">
-            💡 <strong>Note:</strong> Data ini adalah dummy data untuk demonstrasi. 
-            Setelah mengintegrasikan dengan Supabase, sistem akan menggunakan database yang sesungguhnya.
+        <div className="mt-8 p-4 border border-dashed border-green-500/20 rounded-lg bg-green-50/50">
+          <p className="text-sm text-green-700 text-center">
+            ✅ <strong>Success!</strong> Aplikasi sekarang terhubung dengan Supabase database. 
+            Data kandidat diambil langsung dari database PostgreSQL.
           </p>
         </div>
       </div>
