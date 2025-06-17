@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -64,7 +63,6 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
               <TableHead>Location</TableHead>
               <TableHead>Experience</TableHead>
               <TableHead>Skills</TableHead>
-              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,20 +91,6 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
                       <Badge variant="outline" className="text-xs">
                         +{candidate.skills.length - 2}
                       </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`mailto:${candidate.email}`}>Contact</a>
-                    </Button>
-                    {candidate.linkedin_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
-                          LinkedIn
-                        </a>
-                      </Button>
                     )}
                   </div>
                 </TableCell>
