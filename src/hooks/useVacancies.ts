@@ -18,66 +18,47 @@ interface Vacancy {
   companies: Company;
 }
 
-interface Candidate {
-  id: string;
-  name: string;
-  profile_url: string | null;
-  note_sent: string | null;
-  connection_status: string | null;
-  apply_date: string | null;
-  vacancy_id: number | null;
-  created_at: string;
-  vacancies: Vacancy | null;
-}
-
-export const useCandidates = () => {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+export const useVacancies = () => {
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchCandidates = async () => {
+  const fetchVacancies = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const { data, error } = await supabase
-        .from('candidates')
+        .from('vacancies')
         .select(`
           *,
-          vacancies (
+          companies (
             id,
-            title,
-            company_id,
-            description,
-            created_at,
-            companies (
-              id,
-              name,
-              created_at
-            )
+            name,
+            created_at
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching candidates:', error);
+        console.error('Error fetching vacancies:', error);
         setError(error.message);
         toast({
           title: "Error",
-          description: "Failed to fetch candidates from database",
+          description: "Failed to fetch vacancies from database",
           variant: "destructive",
         });
         return;
       }
 
-      setCandidates(data || []);
+      setVacancies(data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');
       toast({
         title: "Error",
-        description: "An unexpected error occurred while fetching candidates",
+        description: "An unexpected error occurred while fetching vacancies",
         variant: "destructive",
       });
     } finally {
@@ -86,13 +67,13 @@ export const useCandidates = () => {
   };
 
   useEffect(() => {
-    fetchCandidates();
+    fetchVacancies();
   }, []);
 
   return {
-    candidates,
+    vacancies,
     loading,
     error,
-    refetch: fetchCandidates,
+    refetch: fetchVacancies,
   };
 };

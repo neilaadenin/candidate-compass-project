@@ -11,71 +11,94 @@ export type Database = {
     Tables: {
       candidates: {
         Row: {
-          client_id: string
-          company: string
+          apply_date: string | null
+          connection_status: string | null
           created_at: string
-          current_position: string
-          email: string
-          experience_years: number
-          full_name: string
           id: string
-          linkedin_url: string | null
-          location: string
-          skills: string[]
+          name: string
+          note_sent: string | null
+          profile_url: string | null
+          vacancy_id: number | null
         }
         Insert: {
-          client_id: string
-          company: string
+          apply_date?: string | null
+          connection_status?: string | null
           created_at?: string
-          current_position: string
-          email: string
-          experience_years?: number
-          full_name: string
           id?: string
-          linkedin_url?: string | null
-          location: string
-          skills?: string[]
+          name: string
+          note_sent?: string | null
+          profile_url?: string | null
+          vacancy_id?: number | null
         }
         Update: {
-          client_id?: string
-          company?: string
+          apply_date?: string | null
+          connection_status?: string | null
           created_at?: string
-          current_position?: string
-          email?: string
-          experience_years?: number
-          full_name?: string
           id?: string
-          linkedin_url?: string | null
-          location?: string
-          skills?: string[]
+          name?: string
+          note_sent?: string | null
+          profile_url?: string | null
+          vacancy_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "candidates_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "candidates_vacancy_id_fkey"
+            columns: ["vacancy_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "vacancies"
             referencedColumns: ["id"]
           },
         ]
       }
-      clients: {
+      companies: {
         Row: {
           created_at: string
-          id: string
+          id: number
           name: string
         }
         Insert: {
           created_at?: string
-          id?: string
+          id?: number
           name: string
         }
         Update: {
           created_at?: string
-          id?: string
+          id?: number
           name?: string
         }
         Relationships: []
+      }
+      vacancies: {
+        Row: {
+          company_id: number
+          created_at: string
+          description: string | null
+          id: number
+          title: string
+        }
+        Insert: {
+          company_id: number
+          created_at?: string
+          description?: string | null
+          id?: number
+          title: string
+        }
+        Update: {
+          company_id?: number
+          created_at?: string
+          description?: string | null
+          id?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacancies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

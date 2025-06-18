@@ -1,28 +1,34 @@
 
-import { MapPin, Briefcase, Calendar, Mail, ExternalLink, Building2 } from "lucide-react";
+import { MapPin, Briefcase, Calendar, Mail, ExternalLink, Building2, FileText, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-interface Client {
-  id: string;
+interface Company {
+  id: number;
   name: string;
   created_at: string;
 }
 
+interface Vacancy {
+  id: number;
+  title: string;
+  company_id: number;
+  description: string | null;
+  created_at: string;
+  companies: Company;
+}
+
 interface Candidate {
   id: string;
-  full_name: string;
-  current_position: string;
-  company: string;
-  location: string;
-  email: string;
-  linkedin_url: string | null;
-  experience_years: number;
-  skills: string[];
+  name: string;
+  profile_url: string | null;
+  note_sent: string | null;
+  connection_status: string | null;
+  apply_date: string | null;
+  vacancy_id: number | null;
   created_at: string;
-  client_id: string;
-  clients: Client;
+  vacancies: Vacancy | null;
 }
 
 interface CandidateCardProps {
@@ -30,71 +36,82 @@ interface CandidateCardProps {
 }
 
 const CandidateCard = ({ candidate }: CandidateCardProps) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getConnectionStatusColor = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+      case 'connected': return 'bg-green-500';
+      case 'pending': return 'bg-yellow-500';
+      case 'rejected': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
   return (
     <Card className="h-full hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg font-semibold text-primary">
-              {candidate.full_name}
+              {candidate.name}
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {candidate.current_position} at {candidate.company}
-            </p>
+            {candidate.vacancies && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {candidate.vacancies.title} at {candidate.vacancies.companies?.name}
+              </p>
+            )}
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {candidate.experience_years} years
-          </Badge>
+          {candidate.connection_status && (
+            <Badge 
+              variant="secondary" 
+              className={`text-xs text-white ${getConnectionStatusColor(candidate.connection_status)}`}
+            >
+              {candidate.connection_status}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="font-medium">{candidate.clients?.name || 'Unknown Client'}</span>
-        </div>
+        {candidate.vacancies?.companies && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="font-medium">{candidate.vacancies.companies.name}</span>
+          </div>
+        )}
 
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span>{candidate.location}</span>
+          <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span>Applied: {formatDate(candidate.apply_date)}</span>
         </div>
         
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="truncate">{candidate.email}</span>
-        </div>
-        
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Skills:</p>
-          <div className="flex flex-wrap gap-1">
-            {candidate.skills.slice(0, 3).map((skill, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {skill}
-              </Badge>
-            ))}
-            {candidate.skills.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{candidate.skills.length - 3} more
-              </Badge>
-            )}
+        {candidate.note_sent && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="truncate">Note: {candidate.note_sent}</span>
           </div>
-        </div>
+        )}
         
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <a href={`mailto:${candidate.email}`}>
-              <Mail className="w-4 h-4 mr-1" />
-              Contact
-            </a>
-          </Button>
-          {candidate.linkedin_url && (
+          {candidate.profile_url && (
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer">
+              <a href={candidate.profile_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-4 h-4 mr-1" />
-                LinkedIn
+                Profile
               </a>
             </Button>
           )}
+          <Button variant="outline" size="sm" className="flex-1">
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Update Status
+          </Button>
         </div>
       </CardContent>
     </Card>

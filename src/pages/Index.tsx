@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Users, LayoutGrid, Table, Search, Filter } from "lucide-react";
+import { Users, LayoutGrid, Table, Search, Filter, Building, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,14 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import CandidateCard from "@/components/CandidateCard";
 import CandidateTable from "@/components/CandidateTable";
 import { useCandidates } from "@/hooks/useCandidates";
-import { useClients } from "@/hooks/useClients";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useVacancies } from "@/hooks/useVacancies";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [gridSearchTerm, setGridSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState<string>("all");
-  const { candidates, loading, error } = useCandidates();
-  const { clients } = useClients();
+  const [selectedCompany, setSelectedCompany] = useState<string>("all");
+  const [selectedVacancy, setSelectedVacancy] = useState<string>("all");
+  
+  const { candidates, loading: candidatesLoading, error: candidatesError } = useCandidates();
+  const { companies, loading: companiesLoading } = useCompanies();
+  const { vacancies, loading: vacanciesLoading } = useVacancies();
+
+  const loading = candidatesLoading || companiesLoading || vacanciesLoading;
 
   if (loading) {
     return (
@@ -29,13 +35,13 @@ const Index = () => {
     );
   }
 
-  if (error) {
+  if (candidatesError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Data</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{candidatesError}</p>
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -44,35 +50,49 @@ const Index = () => {
     );
   }
 
-  // Filter candidates by selected client
-  const filteredByClient = selectedClient === "all" 
-    ? candidates 
-    : candidates.filter(candidate => candidate.client_id === selectedClient);
+  // Filter candidates by selected company and vacancy
+  let filteredCandidates = candidates;
 
-  const totalCandidates = filteredByClient.length;
-  const avgExperience = totalCandidates > 0 
-    ? Math.round(filteredByClient.reduce((sum, candidate) => sum + candidate.experience_years, 0) / totalCandidates)
-    : 0;
+  if (selectedCompany !== "all") {
+    filteredCandidates = filteredCandidates.filter(candidate => 
+      candidate.vacancies?.companies?.id.toString() === selectedCompany
+    );
+  }
 
-  // Get unique skills count from filtered candidates
-  const allSkills = filteredByClient.flatMap(candidate => candidate.skills);
-  const uniqueSkills = new Set(allSkills).size;
+  if (selectedVacancy !== "all") {
+    filteredCandidates = filteredCandidates.filter(candidate => 
+      candidate.vacancy_id?.toString() === selectedVacancy
+    );
+  }
 
-  // Filter candidates for grid view (includes client filter + search)
-  const filteredGridCandidates = filteredByClient.filter(candidate =>
-    candidate.full_name.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
-    candidate.current_position.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
-    candidate.company.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
-    candidate.skills.some(skill => 
-      skill.toLowerCase().includes(gridSearchTerm.toLowerCase())
-    )
+  const totalCandidates = filteredCandidates.length;
+  const connectedCandidates = filteredCandidates.filter(c => c.connection_status === 'connected').length;
+  const pendingCandidates = filteredCandidates.filter(c => c.connection_status === 'pending').length;
+
+  // Filter candidates for grid view (includes filters + search)
+  const filteredGridCandidates = filteredCandidates.filter(candidate =>
+    candidate.name.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
+    candidate.vacancies?.title.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
+    candidate.vacancies?.companies?.name.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
+    candidate.connection_status?.toLowerCase().includes(gridSearchTerm.toLowerCase())
   );
 
-  // Get client name by ID
-  const getClientName = (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
-    return client?.name || 'Unknown Client';
+  // Get company name by ID
+  const getCompanyName = (companyId: string) => {
+    const company = companies.find(c => c.id.toString() === companyId);
+    return company?.name || 'Unknown Company';
   };
+
+  // Get vacancy name by ID
+  const getVacancyName = (vacancyId: string) => {
+    const vacancy = vacancies.find(v => v.id.toString() === vacancyId);
+    return vacancy?.title || 'Unknown Vacancy';
+  };
+
+  // Filter vacancies by selected company for the vacancy dropdown
+  const filteredVacancies = selectedCompany === "all" 
+    ? vacancies 
+    : vacancies.filter(v => v.company_id.toString() === selectedCompany);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -108,73 +128,118 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Client Filter */}
+          {/* Filters */}
           <div className="mb-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <span className="text-sm font-medium">Filter by Client:</span>
+                <span className="text-sm font-medium">Filters:</span>
               </div>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedClient !== "all" && (
-                <Badge variant="secondary">
-                  {getClientName(selectedClient)}
-                </Badge>
+              
+              <div className="flex items-center gap-2">
+                <Building className="w-4 h-4" />
+                <Select value={selectedCompany} onValueChange={(value) => {
+                  setSelectedCompany(value);
+                  setSelectedVacancy("all"); // Reset vacancy when company changes
+                }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Companies</SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id.toString()}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                <Select value={selectedVacancy} onValueChange={setSelectedVacancy}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select vacancy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Vacancies</SelectItem>
+                    {filteredVacancies.map((vacancy) => (
+                      <SelectItem key={vacancy.id} value={vacancy.id.toString()}>
+                        {vacancy.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(selectedCompany !== "all" || selectedVacancy !== "all") && (
+                <div className="flex gap-2">
+                  {selectedCompany !== "all" && (
+                    <Badge variant="secondary">
+                      {getCompanyName(selectedCompany)}
+                    </Badge>
+                  )}
+                  {selectedVacancy !== "all" && (
+                    <Badge variant="secondary">
+                      {getVacancyName(selectedVacancy)}
+                    </Badge>
+                  )}
+                </div>
               )}
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {selectedClient === "all" ? "Total Candidates" : "Filtered Candidates"}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalCandidates}</div>
                 <p className="text-xs text-muted-foreground">
-                  {selectedClient === "all" ? "Active candidates in database" : `For ${getClientName(selectedClient)}`}
+                  Filtered candidates
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Experience</CardTitle>
-                <Badge variant="secondary">{avgExperience} years</Badge>
+                <CardTitle className="text-sm font-medium">Connected</CardTitle>
+                <Badge variant="default" className="bg-green-500">{connectedCandidates}</Badge>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{avgExperience} Years</div>
+                <div className="text-2xl font-bold">{connectedCandidates}</div>
                 <p className="text-xs text-muted-foreground">
-                  Average work experience
+                  Successfully connected
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unique Skills</CardTitle>
-                <Badge variant="outline">{uniqueSkills}</Badge>
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <Badge variant="secondary" className="bg-yellow-500">{pendingCandidates}</Badge>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{uniqueSkills}</div>
+                <div className="text-2xl font-bold">{pendingCandidates}</div>
                 <p className="text-xs text-muted-foreground">
-                  Different skill sets
+                  Awaiting response
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Companies</CardTitle>
+                <Building className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{companies.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total companies
                 </p>
               </CardContent>
             </Card>
@@ -197,13 +262,13 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             {viewMode === "table" ? (
-              <CandidateTable candidates={filteredByClient} />
+              <CandidateTable candidates={filteredCandidates} />
             ) : (
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search candidates by name, position, company, or skills..."
+                    placeholder="Search candidates by name, vacancy, company, or status..."
                     value={gridSearchTerm}
                     onChange={(e) => setGridSearchTerm(e.target.value)}
                     className="pl-10"
@@ -216,11 +281,11 @@ const Index = () => {
                 </div>
                 {filteredGridCandidates.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    No candidates found matching your search.
+                    No candidates found matching your search and filters.
                   </div>
                 )}
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredGridCandidates.length} of {filteredByClient.length} candidates
+                  Showing {filteredGridCandidates.length} of {filteredCandidates.length} candidates
                 </div>
               </div>
             )}
@@ -230,8 +295,8 @@ const Index = () => {
         {/* Footer Note */}
         <div className="mt-8 p-4 border border-dashed border-green-500/20 rounded-lg bg-green-50/50">
           <p className="text-sm text-green-700 text-center">
-            ✅ <strong>Success!</strong> Aplikasi sekarang terhubung dengan Supabase database dan mendukung filtering berdasarkan client. 
-            Data kandidat diambil langsung dari database PostgreSQL dengan relasi client.
+            ✅ <strong>Success!</strong> Aplikasi sekarang menggunakan struktur database baru dengan companies, vacancies, dan candidates. 
+            Data diambil langsung dari database PostgreSQL dengan relasi yang tepat.
           </p>
         </div>
       </div>
