@@ -12,6 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface Client {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 interface Candidate {
   id: string;
   full_name: string;
@@ -23,6 +29,8 @@ interface Candidate {
   experience_years: number;
   skills: string[];
   created_at: string;
+  client_id: string;
+  clients: Client;
 }
 
 interface CandidateTableProps {
@@ -36,6 +44,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
     candidate.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     candidate.current_position.toLowerCase().includes(searchTerm.toLowerCase()) ||
     candidate.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.clients?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     candidate.skills.some(skill => 
       skill.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -46,7 +55,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search candidates by name, position, company, or skills..."
+          placeholder="Search candidates by name, position, company, client, or skills..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -60,6 +69,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
               <TableHead>Name</TableHead>
               <TableHead>Position</TableHead>
               <TableHead>Company</TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Experience</TableHead>
               <TableHead>Skills</TableHead>
@@ -76,6 +86,11 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
                 </TableCell>
                 <TableCell>{candidate.current_position}</TableCell>
                 <TableCell>{candidate.company}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {candidate.clients?.name || 'Unknown'}
+                  </Badge>
+                </TableCell>
                 <TableCell>{candidate.location}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{candidate.experience_years} years</Badge>

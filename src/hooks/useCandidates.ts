@@ -3,6 +3,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface Client {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 interface Candidate {
   id: string;
   full_name: string;
@@ -14,6 +20,8 @@ interface Candidate {
   experience_years: number;
   skills: string[];
   created_at: string;
+  client_id: string;
+  clients: Client;
 }
 
 export const useCandidates = () => {
@@ -29,7 +37,14 @@ export const useCandidates = () => {
 
       const { data, error } = await supabase
         .from('candidates')
-        .select('*')
+        .select(`
+          *,
+          clients (
+            id,
+            name,
+            created_at
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {

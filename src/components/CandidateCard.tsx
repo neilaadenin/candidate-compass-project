@@ -1,8 +1,14 @@
 
-import { MapPin, Briefcase, Calendar, Mail, ExternalLink } from "lucide-react";
+import { MapPin, Briefcase, Calendar, Mail, ExternalLink, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+interface Client {
+  id: string;
+  name: string;
+  created_at: string;
+}
 
 interface Candidate {
   id: string;
@@ -15,6 +21,8 @@ interface Candidate {
   experience_years: number;
   skills: string[];
   created_at: string;
+  client_id: string;
+  clients: Client;
 }
 
 interface CandidateCardProps {
@@ -41,6 +49,11 @@ const CandidateCard = ({ candidate }: CandidateCardProps) => {
       </CardHeader>
       
       <CardContent className="space-y-4">
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="font-medium">{candidate.clients?.name || 'Unknown Client'}</span>
+        </div>
+
         <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
           <span>{candidate.location}</span>

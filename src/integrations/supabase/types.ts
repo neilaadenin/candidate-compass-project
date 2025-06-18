@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       candidates: {
         Row: {
+          client_id: string
           company: string
           created_at: string
           current_position: string
@@ -23,6 +24,7 @@ export type Database = {
           skills: string[]
         }
         Insert: {
+          client_id: string
           company: string
           created_at?: string
           current_position: string
@@ -35,6 +37,7 @@ export type Database = {
           skills?: string[]
         }
         Update: {
+          client_id?: string
           company?: string
           created_at?: string
           current_position?: string
@@ -45,6 +48,32 @@ export type Database = {
           linkedin_url?: string | null
           location?: string
           skills?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }

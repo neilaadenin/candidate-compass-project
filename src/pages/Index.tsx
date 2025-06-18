@@ -1,18 +1,22 @@
 
 import { useState } from "react";
-import { Users, LayoutGrid, Table, Search } from "lucide-react";
+import { Users, LayoutGrid, Table, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CandidateCard from "@/components/CandidateCard";
 import CandidateTable from "@/components/CandidateTable";
 import { useCandidates } from "@/hooks/useCandidates";
+import { useClients } from "@/hooks/useClients";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [gridSearchTerm, setGridSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<string>("all");
   const { candidates, loading, error } = useCandidates();
+  const { clients } = useClients();
 
   if (loading) {
     return (
@@ -40,17 +44,22 @@ const Index = () => {
     );
   }
 
-  const totalCandidates = candidates.length;
+  // Filter candidates by selected client
+  const filteredByClient = selectedClient === "all" 
+    ? candidates 
+    : candidates.filter(candidate => candidate.client_id === selectedClient);
+
+  const totalCandidates = filteredByClient.length;
   const avgExperience = totalCandidates > 0 
-    ? Math.round(candidates.reduce((sum, candidate) => sum + candidate.experience_years, 0) / totalCandidates)
+    ? Math.round(filteredByClient.reduce((sum, candidate) => sum + candidate.experience_years, 0) / totalCandidates)
     : 0;
 
-  // Get unique skills count
-  const allSkills = candidates.flatMap(candidate => candidate.skills);
+  // Get unique skills count from filtered candidates
+  const allSkills = filteredByClient.flatMap(candidate => candidate.skills);
   const uniqueSkills = new Set(allSkills).size;
 
-  // Filter candidates for grid view
-  const filteredGridCandidates = candidates.filter(candidate =>
+  // Filter candidates for grid view (includes client filter + search)
+  const filteredGridCandidates = filteredByClient.filter(candidate =>
     candidate.full_name.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
     candidate.current_position.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
     candidate.company.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
@@ -58,6 +67,12 @@ const Index = () => {
       skill.toLowerCase().includes(gridSearchTerm.toLowerCase())
     )
   );
+
+  // Get client name by ID
+  const getClientName = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.name || 'Unknown Client';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -93,17 +108,47 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Client Filter */}
+          <div className="mb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <span className="text-sm font-medium">Filter by Client:</span>
+              </div>
+              <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedClient !== "all" && (
+                <Badge variant="secondary">
+                  {getClientName(selectedClient)}
+                </Badge>
+              )}
+            </div>
+          </div>
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {selectedClient === "all" ? "Total Candidates" : "Filtered Candidates"}
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalCandidates}</div>
                 <p className="text-xs text-muted-foreground">
-                  Active candidates in database
+                  {selectedClient === "all" ? "Active candidates in database" : `For ${getClientName(selectedClient)}`}
                 </p>
               </CardContent>
             </Card>
@@ -152,7 +197,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             {viewMode === "table" ? (
-              <CandidateTable candidates={candidates} />
+              <CandidateTable candidates={filteredByClient} />
             ) : (
               <div className="space-y-4">
                 <div className="relative">
@@ -175,7 +220,7 @@ const Index = () => {
                   </div>
                 )}
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredGridCandidates.length} of {candidates.length} candidates
+                  Showing {filteredGridCandidates.length} of {filteredByClient.length} candidates
                 </div>
               </div>
             )}
@@ -185,8 +230,8 @@ const Index = () => {
         {/* Footer Note */}
         <div className="mt-8 p-4 border border-dashed border-green-500/20 rounded-lg bg-green-50/50">
           <p className="text-sm text-green-700 text-center">
-            ✅ <strong>Success!</strong> Aplikasi sekarang terhubung dengan Supabase database. 
-            Data kandidat diambil langsung dari database PostgreSQL.
+            ✅ <strong>Success!</strong> Aplikasi sekarang terhubung dengan Supabase database dan mendukung filtering berdasarkan client. 
+            Data kandidat diambil langsung dari database PostgreSQL dengan relasi client.
           </p>
         </div>
       </div>
