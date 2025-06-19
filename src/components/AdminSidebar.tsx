@@ -9,10 +9,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Building, Briefcase, User } from "lucide-react";
+import { Building, Briefcase, User, LayoutDashboard } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
+  {
+    title: "Dashboard",
+    url: "/admin/dashboard",
+    icon: LayoutDashboard,
+  },
   {
     title: "Company",
     url: "/admin/company",
