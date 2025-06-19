@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useVacancies } from "@/hooks/useVacancies";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -42,11 +41,11 @@ export default function VacancyPage() {
   const [vacancyTitle, setVacancyTitle] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [description, setDescription] = useState("");
-  const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [filterCompanyId, setFilterCompanyId] = useState("all");
 
-  const filteredVacancies = filterCompanyId
-    ? vacancies.filter((vacancy) => vacancy.company_id.toString() === filterCompanyId)
-    : vacancies;
+  const filteredVacancies = filterCompanyId === "all"
+    ? vacancies
+    : vacancies.filter((vacancy) => vacancy.company_id.toString() === filterCompanyId);
 
   const handleAddVacancy = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,7 +252,7 @@ export default function VacancyPage() {
             <SelectValue placeholder="All companies" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All companies</SelectItem>
+            <SelectItem value="all">All companies</SelectItem>
             {companies.map((company) => (
               <SelectItem key={company.id} value={company.id.toString()}>
                 {company.name}
