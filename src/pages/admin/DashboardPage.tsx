@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { useState } from "react";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useVacancies } from "@/hooks/useVacancies";
-import { CandidateCard } from "@/components/CandidateCard";
+import CandidateCard from "@/components/CandidateCard";
 
 export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
