@@ -30,6 +30,7 @@ export default function CompanyPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [companyName, setCompanyName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,13 +44,21 @@ export default function CompanyPage() {
       return;
     }
 
+    setIsSubmitting(true);
+    console.log("Adding company:", companyName.trim());
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("companies")
-        .insert([{ name: companyName.trim() }]);
+        .insert([{ name: companyName.trim() }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Company added successfully:", data);
       toast({
         title: "Success",
         description: "Company added successfully",
@@ -58,13 +67,15 @@ export default function CompanyPage() {
       setCompanyName("");
       setIsAddDialogOpen(false);
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding company:", error);
       toast({
         title: "Error",
-        description: "Failed to add company",
+        description: error.message || "Failed to add company",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -80,14 +91,22 @@ export default function CompanyPage() {
       return;
     }
 
+    setIsSubmitting(true);
+    console.log("Updating company:", editingCompany.id, companyName.trim());
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("companies")
         .update({ name: companyName.trim() })
-        .eq("id", editingCompany.id);
+        .eq("id", editingCompany.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Company updated successfully:", data);
       toast({
         title: "Success",
         description: "Company updated successfully",
@@ -97,18 +116,22 @@ export default function CompanyPage() {
       setEditingCompany(null);
       setIsEditDialogOpen(false);
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating company:", error);
       toast({
         title: "Error",
-        description: "Failed to update company",
+        description: error.message || "Failed to update company",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteCompany = async (companyId: number) => {
     if (!confirm("Are you sure you want to delete this company?")) return;
+
+    console.log("Deleting company:", companyId);
 
     try {
       const { error } = await supabase
@@ -116,25 +139,30 @@ export default function CompanyPage() {
         .delete()
         .eq("id", companyId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Company deleted successfully");
       toast({
         title: "Success",
         description: "Company deleted successfully",
       });
       
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting company:", error);
       toast({
         title: "Error",
-        description: "Failed to delete company",
+        description: error.message || "Failed to delete company",
         variant: "destructive",
       });
     }
   };
 
   const openEditDialog = (company: any) => {
+    console.log("Opening edit dialog for company:", company);
     setEditingCompany(company);
     setCompanyName(company.name);
     setIsEditDialogOpen(true);
@@ -171,7 +199,9 @@ export default function CompanyPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Add Company</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Company"}
+                </Button>
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -179,6 +209,7 @@ export default function CompanyPage() {
                     setCompanyName("");
                     setIsAddDialogOpen(false);
                   }}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
@@ -247,7 +278,9 @@ export default function CompanyPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button type="submit">Update Company</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Company"}
+              </Button>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -256,6 +289,7 @@ export default function CompanyPage() {
                   setEditingCompany(null);
                   setIsEditDialogOpen(false);
                 }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>

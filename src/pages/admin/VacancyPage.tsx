@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useVacancies } from "@/hooks/useVacancies";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -42,6 +43,7 @@ export default function VacancyPage() {
   const [companyId, setCompanyId] = useState("");
   const [description, setDescription] = useState("");
   const [filterCompanyId, setFilterCompanyId] = useState("all");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredVacancies = filterCompanyId === "all"
     ? vacancies
@@ -59,17 +61,25 @@ export default function VacancyPage() {
       return;
     }
 
+    setIsSubmitting(true);
+    console.log("Adding vacancy:", { title: vacancyTitle.trim(), company_id: parseInt(companyId), description: description.trim() });
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("vacancies")
         .insert([{
           title: vacancyTitle.trim(),
           company_id: parseInt(companyId),
           description: description.trim() || null,
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Vacancy added successfully:", data);
       toast({
         title: "Success",
         description: "Vacancy added successfully",
@@ -78,13 +88,15 @@ export default function VacancyPage() {
       resetForm();
       setIsAddDialogOpen(false);
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding vacancy:", error);
       toast({
         title: "Error",
-        description: "Failed to add vacancy",
+        description: error.message || "Failed to add vacancy",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -100,18 +112,26 @@ export default function VacancyPage() {
       return;
     }
 
+    setIsSubmitting(true);
+    console.log("Updating vacancy:", editingVacancy.id, { title: vacancyTitle.trim(), company_id: parseInt(companyId), description: description.trim() });
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("vacancies")
         .update({
           title: vacancyTitle.trim(),
           company_id: parseInt(companyId),
           description: description.trim() || null,
         })
-        .eq("id", editingVacancy.id);
+        .eq("id", editingVacancy.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Vacancy updated successfully:", data);
       toast({
         title: "Success",
         description: "Vacancy updated successfully",
@@ -121,18 +141,22 @@ export default function VacancyPage() {
       setEditingVacancy(null);
       setIsEditDialogOpen(false);
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating vacancy:", error);
       toast({
         title: "Error",
-        description: "Failed to update vacancy",
+        description: error.message || "Failed to update vacancy",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteVacancy = async (vacancyId: number) => {
     if (!confirm("Are you sure you want to delete this vacancy?")) return;
+
+    console.log("Deleting vacancy:", vacancyId);
 
     try {
       const { error } = await supabase
@@ -140,25 +164,30 @@ export default function VacancyPage() {
         .delete()
         .eq("id", vacancyId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
+      console.log("Vacancy deleted successfully");
       toast({
         title: "Success",
         description: "Vacancy deleted successfully",
       });
       
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting vacancy:", error);
       toast({
         title: "Error",
-        description: "Failed to delete vacancy",
+        description: error.message || "Failed to delete vacancy",
         variant: "destructive",
       });
     }
   };
 
   const openEditDialog = (vacancy: any) => {
+    console.log("Opening edit dialog for vacancy:", vacancy);
     setEditingVacancy(vacancy);
     setVacancyTitle(vacancy.title);
     setCompanyId(vacancy.company_id.toString());
@@ -228,7 +257,9 @@ export default function VacancyPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Add Vacancy</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Vacancy"}
+                </Button>
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -236,6 +267,7 @@ export default function VacancyPage() {
                     resetForm();
                     setIsAddDialogOpen(false);
                   }}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
@@ -277,7 +309,7 @@ export default function VacancyPage() {
             {filteredVacancies.map((vacancy) => (
               <TableRow key={vacancy.id}>
                 <TableCell>{vacancy.title}</TableCell>
-                <TableCell>{vacancy.companies.name}</TableCell>
+                <TableCell>{vacancy.companies?.name || 'N/A'}</TableCell>
                 <TableCell className="max-w-xs truncate">
                   {vacancy.description || "-"}
                 </TableCell>
@@ -350,7 +382,9 @@ export default function VacancyPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button type="submit">Update Vacancy</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Vacancy"}
+              </Button>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -359,6 +393,7 @@ export default function VacancyPage() {
                   setEditingVacancy(null);
                   setIsEditDialogOpen(false);
                 }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>

@@ -1,10 +1,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Users, Building2, Briefcase, LayoutGrid, Table as TableIcon } from "lucide-react";
+import { Search, Filter, Users, Building2 } from "lucide-react";
 import { useState } from "react";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -15,7 +14,6 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [vacancyFilter, setVacancyFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const { candidates, loading: candidatesLoading } = useCandidates();
   const { companies } = useCompanies();
@@ -49,10 +47,6 @@ export default function DashboardPage() {
     return matchesSearch && matchesCompany && matchesVacancy;
   });
 
-  // Calculate stats
-  const connectedCount = candidates.filter(c => c.connection_status === 'connected').length;
-  const pendingCount = candidates.filter(c => c.connection_status === 'pending').length;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -60,26 +54,6 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Candidate Management System</h1>
           <p className="text-gray-600 mt-1">Kelola dan cari kandidat terbaik untuk tim Anda</p>
-        </div>
-        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="flex items-center gap-2"
-          >
-            <TableIcon className="h-4 w-4" />
-            Table
-          </Button>
-          <Button
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            className="flex items-center gap-2"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            Grid
-          </Button>
         </div>
       </div>
 
@@ -119,8 +93,8 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats Cards - Only Total Candidates and Companies */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="bg-white shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -130,40 +104,6 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">Filtered candidates</p>
               </div>
               <Users className="h-8 w-8 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Connected</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-3xl font-bold text-gray-900">{connectedCount}</p>
-                  <Badge className="bg-green-500 text-white text-xs">
-                    {connectedCount}
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-500">Successfully connected</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Pending</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
-                  <Badge className="bg-yellow-500 text-white text-xs">
-                    {pendingCount}
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-500">Awaiting response</p>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -182,7 +122,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Candidate Database Section */}
+      {/* Candidate Database Section - Always Table View */}
       <Card className="bg-white shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -190,7 +130,7 @@ export default function DashboardPage() {
             <CardTitle>Candidate Database</CardTitle>
           </div>
           <CardDescription>
-            Browse candidates in table format with search and filter capabilities
+            Browse candidates with search and filter capabilities
           </CardDescription>
         </CardHeader>
         <CardContent>
