@@ -18,6 +18,7 @@ export type Database = {
           name: string
           note_sent: string | null
           profile_url: string | null
+          search_url: string | null
           vacancy_id: number | null
         }
         Insert: {
@@ -28,6 +29,7 @@ export type Database = {
           name: string
           note_sent?: string | null
           profile_url?: string | null
+          search_url?: string | null
           vacancy_id?: number | null
         }
         Update: {
@@ -38,6 +40,7 @@ export type Database = {
           name?: string
           note_sent?: string | null
           profile_url?: string | null
+          search_url?: string | null
           vacancy_id?: number | null
         }
         Relationships: [
