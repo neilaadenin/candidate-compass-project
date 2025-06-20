@@ -1,8 +1,12 @@
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -45,13 +49,21 @@ interface CandidateTableProps {
 
 const CandidateTable = ({ candidates }: CandidateTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.vacancies?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.vacancies?.companies?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.connection_status?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCandidates = candidates.filter(candidate => {
+    const matchesSearch = 
+      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.vacancies?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.vacancies?.companies?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      candidate.connection_status?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesDate = selectedDate 
+      ? candidate.apply_date && new Date(candidate.apply_date).toDateString() === selectedDate.toDateString()
+      : true;
+
+    return matchesSearch && matchesDate;
+  });
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
@@ -73,14 +85,37 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search candidates by name, vacancy, company, or status..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search candidates by name, vacancy, company, or status..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+              <Calendar className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <CalendarComponent
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        {selectedDate && (
+          <Button variant="ghost" onClick={() => setSelectedDate(undefined)}>
+            Clear date
+          </Button>
+        )}
       </div>
 
       <div className="rounded-md border">
@@ -91,7 +126,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
               <TableHead>Vacancy</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Apply Date</TableHead>
+              <TableHead>Outreach Date</TableHead>
               <TableHead>Note</TableHead>
             </TableRow>
           </TableHeader>
