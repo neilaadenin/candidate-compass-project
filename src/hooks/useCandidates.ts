@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Candidate {
   id: string;
@@ -19,11 +20,14 @@ export const useCandidates = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchCandidates = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('Fetching candidates with user:', user?.email);
 
       const { data, error } = await supabase
         .from('candidates')
@@ -41,6 +45,7 @@ export const useCandidates = () => {
         return;
       }
 
+      console.log('Candidates fetched successfully:', data);
       setCandidates(data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -56,8 +61,10 @@ export const useCandidates = () => {
   };
 
   useEffect(() => {
-    fetchCandidates();
-  }, []);
+    if (user) {
+      fetchCandidates();
+    }
+  }, [user]);
 
   return {
     candidates,
