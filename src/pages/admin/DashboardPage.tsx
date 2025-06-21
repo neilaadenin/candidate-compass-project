@@ -1,9 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Users, Building2 } from "lucide-react";
+import { Filter, Users, Building2 } from "lucide-react";
 import { useState } from "react";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -11,7 +9,6 @@ import { useVacancies } from "@/hooks/useVacancies";
 import CandidateTable from "@/components/CandidateTable";
 
 export default function DashboardPage() {
-  const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [vacancyFilter, setVacancyFilter] = useState("all");
 
@@ -33,18 +30,13 @@ export default function DashboardPage() {
 
   // Filter candidates
   const filteredCandidates = enrichedCandidates.filter(candidate => {
-    const matchesSearch = candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.vacancies?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.vacancies?.companies?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.connection_status?.toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesCompany = companyFilter === "all" || 
       (candidate.vacancies?.company_id === parseInt(companyFilter));
     
     const matchesVacancy = vacancyFilter === "all" || 
       (candidate.vacancy_id === parseInt(vacancyFilter));
     
-    return matchesSearch && matchesCompany && matchesVacancy;
+    return matchesCompany && matchesVacancy;
   });
 
   return (
@@ -134,18 +126,6 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search candidates by name, vacancy, company, or status..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
           {candidatesLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>

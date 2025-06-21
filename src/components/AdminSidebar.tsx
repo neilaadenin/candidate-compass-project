@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Building, Briefcase, User, LayoutDashboard } from "lucide-react";
+import { Building, Briefcase, LayoutDashboard } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
@@ -27,11 +27,6 @@ const menuItems = [
     title: "Vacancy",
     url: "/admin/vacancy", 
     icon: Briefcase,
-  },
-  {
-    title: "Candidate",
-    url: "/admin/candidate",
-    icon: User,
   },
 ];
 

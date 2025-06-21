@@ -37,7 +37,7 @@ interface Candidate {
   profile_url: string | null;
   note_sent: string | null;
   connection_status: string | null;
-  apply_date: string | null;
+  out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
   vacancies: Vacancy | null;
@@ -59,7 +59,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
       candidate.connection_status?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesDate = selectedDate 
-      ? candidate.apply_date && new Date(candidate.apply_date).toDateString() === selectedDate.toDateString()
+      ? candidate.out_reach && new Date(candidate.out_reach).toDateString() === selectedDate.toDateString()
       : true;
 
     return matchesSearch && matchesDate;
@@ -155,7 +155,7 @@ const CandidateTable = ({ candidates }: CandidateTableProps) => {
                     {candidate.connection_status || 'No status'}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatDate(candidate.apply_date)}</TableCell>
+                <TableCell>{formatDate(candidate.out_reach)}</TableCell>
                 <TableCell>
                   <div className="max-w-xs truncate">
                     {candidate.note_sent || 'No note'}

@@ -10,7 +10,7 @@ interface Candidate {
   profile_url: string | null;
   note_sent: string | null;
   connection_status: string | null;
-  apply_date: string | null;
+  out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
 }
