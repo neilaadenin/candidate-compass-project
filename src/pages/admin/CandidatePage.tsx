@@ -30,7 +30,7 @@ export default function CandidatePage() {
               <TableHead>Name</TableHead>
               <TableHead>Profile URL</TableHead>
               <TableHead>Connection Status</TableHead>
-              <TableHead>Apply Date</TableHead>
+              <TableHead>Outreach Date</TableHead>
               <TableHead>Note Sent</TableHead>
               <TableHead>Created At</TableHead>
             </TableRow>
@@ -63,8 +63,8 @@ export default function CandidatePage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {candidate.apply_date ? 
-                    new Date(candidate.apply_date).toLocaleDateString() : 
+                  {candidate.out_reach ? 
+                    new Date(candidate.out_reach).toLocaleDateString() : 
                     "-"
                   }
                 </TableCell>
