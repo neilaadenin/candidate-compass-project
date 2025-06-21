@@ -11,34 +11,34 @@ export type Database = {
     Tables: {
       candidates: {
         Row: {
-          apply_date: string | null
           connection_status: string | null
           created_at: string
           id: string
           name: string
           note_sent: string | null
+          out_reach: string | null
           profile_url: string | null
           search_url: string | null
           vacancy_id: number | null
         }
         Insert: {
-          apply_date?: string | null
           connection_status?: string | null
           created_at?: string
           id?: string
           name: string
           note_sent?: string | null
+          out_reach?: string | null
           profile_url?: string | null
           search_url?: string | null
           vacancy_id?: number | null
         }
         Update: {
-          apply_date?: string | null
           connection_status?: string | null
           created_at?: string
           id?: string
           name?: string
           note_sent?: string | null
+          out_reach?: string | null
           profile_url?: string | null
           search_url?: string | null
           vacancy_id?: number | null
