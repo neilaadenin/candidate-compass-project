@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, Users, Building2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useVacancies } from "@/hooks/useVacancies";
@@ -28,6 +28,25 @@ export default function DashboardPage() {
     };
   });
 
+  // Filter vacancies based on selected company
+  const filteredVacancies = companyFilter === "all" 
+    ? vacancies 
+    : vacancies.filter(vacancy => vacancy.company_id === parseInt(companyFilter));
+
+  // Reset vacancy filter when company filter changes
+  useEffect(() => {
+    if (companyFilter !== "all") {
+      // Check if current vacancy filter is still valid for the selected company
+      const isVacancyValidForCompany = filteredVacancies.some(
+        vacancy => vacancy.id === parseInt(vacancyFilter)
+      );
+      
+      if (!isVacancyValidForCompany) {
+        setVacancyFilter("all");
+      }
+    }
+  }, [companyFilter, filteredVacancies, vacancyFilter]);
+
   // Filter candidates
   const filteredCandidates = enrichedCandidates.filter(candidate => {
     const matchesCompany = companyFilter === "all" || 
@@ -38,6 +57,14 @@ export default function DashboardPage() {
     
     return matchesCompany && matchesVacancy;
   });
+
+  const handleCompanyFilterChange = (value: string) => {
+    setCompanyFilter(value);
+    // Reset vacancy filter when company changes
+    if (value === "all") {
+      setVacancyFilter("all");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -55,7 +82,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4 mb-4">
             <Filter className="h-5 w-5 text-gray-500" />
             <span className="font-medium text-gray-700">Filters:</span>
-            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All Companies" />
               </SelectTrigger>
@@ -74,7 +101,7 @@ export default function DashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Vacancies</SelectItem>
-                {vacancies.map((vacancy) => (
+                {filteredVacancies.map((vacancy) => (
                   <SelectItem key={vacancy.id} value={vacancy.id.toString()}>
                     {vacancy.title}
                   </SelectItem>
