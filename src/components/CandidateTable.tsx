@@ -41,7 +41,9 @@ export default function CandidateTable({ candidates }: CandidateTableProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
     switch (status.toLowerCase()) {
       case 'hired': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -104,7 +106,7 @@ export default function CandidateTable({ candidates }: CandidateTableProps) {
               </TableCell>
               <TableCell>
                 <Badge className={getStatusColor(candidate.status)}>
-                  {candidate.status}
+                  {candidate.status || 'Unknown'}
                 </Badge>
               </TableCell>
               <TableCell className="max-w-xs">
