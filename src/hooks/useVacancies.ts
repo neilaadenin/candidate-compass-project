@@ -15,6 +15,8 @@ interface Vacancy {
   title: string;
   company_id: number;
   description: string | null;
+  search_url: string | null;
+  note_sent: string | null;
   created_at: string;
   companies: Company;
 }
