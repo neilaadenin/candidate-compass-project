@@ -42,6 +42,8 @@ export default function VacancyPage() {
   const [vacancyTitle, setVacancyTitle] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [description, setDescription] = useState("");
+  const [searchUrl, setSearchUrl] = useState("");
+  const [noteSent, setNoteSent] = useState("");
   const [filterCompanyId, setFilterCompanyId] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,7 +64,13 @@ export default function VacancyPage() {
     }
 
     setIsSubmitting(true);
-    console.log("Adding vacancy:", { title: vacancyTitle.trim(), company_id: parseInt(companyId), description: description.trim() });
+    console.log("Adding vacancy:", { 
+      title: vacancyTitle.trim(), 
+      company_id: parseInt(companyId), 
+      description: description.trim(),
+      search_url: searchUrl.trim(),
+      note_sent: noteSent.trim()
+    });
 
     try {
       const { data, error } = await supabase
@@ -71,6 +79,8 @@ export default function VacancyPage() {
           title: vacancyTitle.trim(),
           company_id: parseInt(companyId),
           description: description.trim() || null,
+          search_url: searchUrl.trim() || null,
+          note_sent: noteSent.trim() || null,
         }])
         .select();
 
@@ -113,7 +123,13 @@ export default function VacancyPage() {
     }
 
     setIsSubmitting(true);
-    console.log("Updating vacancy:", editingVacancy.id, { title: vacancyTitle.trim(), company_id: parseInt(companyId), description: description.trim() });
+    console.log("Updating vacancy:", editingVacancy.id, { 
+      title: vacancyTitle.trim(), 
+      company_id: parseInt(companyId), 
+      description: description.trim(),
+      search_url: searchUrl.trim(),
+      note_sent: noteSent.trim()
+    });
 
     try {
       const { data, error } = await supabase
@@ -122,6 +138,8 @@ export default function VacancyPage() {
           title: vacancyTitle.trim(),
           company_id: parseInt(companyId),
           description: description.trim() || null,
+          search_url: searchUrl.trim() || null,
+          note_sent: noteSent.trim() || null,
         })
         .eq("id", editingVacancy.id)
         .select();
@@ -192,6 +210,8 @@ export default function VacancyPage() {
     setVacancyTitle(vacancy.title);
     setCompanyId(vacancy.company_id.toString());
     setDescription(vacancy.description || "");
+    setSearchUrl(vacancy.search_url || "");
+    setNoteSent(vacancy.note_sent || "");
     setIsEditDialogOpen(true);
   };
 
@@ -199,6 +219,8 @@ export default function VacancyPage() {
     setVacancyTitle("");
     setCompanyId("");
     setDescription("");
+    setSearchUrl("");
+    setNoteSent("");
   };
 
   if (loading) {
@@ -216,7 +238,7 @@ export default function VacancyPage() {
               Add Vacancy
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Vacancy</DialogTitle>
             </DialogHeader>
@@ -254,6 +276,26 @@ export default function VacancyPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter vacancy description"
                   rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="searchUrl">Search URL (Optional)</Label>
+                <Input
+                  id="searchUrl"
+                  value={searchUrl}
+                  onChange={(e) => setSearchUrl(e.target.value)}
+                  placeholder="Enter search URL"
+                  type="url"
+                />
+              </div>
+              <div>
+                <Label htmlFor="noteSent">Note Sent (Optional)</Label>
+                <Textarea
+                  id="noteSent"
+                  value={noteSent}
+                  onChange={(e) => setNoteSent(e.target.value)}
+                  placeholder="Enter note sent"
+                  rows={2}
                 />
               </div>
               <div className="flex gap-2">
@@ -301,6 +343,8 @@ export default function VacancyPage() {
               <TableHead>Vacancy Name</TableHead>
               <TableHead>Company Name</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Search URL</TableHead>
+              <TableHead>Note Sent</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -312,6 +356,23 @@ export default function VacancyPage() {
                 <TableCell>{vacancy.companies?.name || 'N/A'}</TableCell>
                 <TableCell className="max-w-xs truncate">
                   {vacancy.description || "-"}
+                </TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {vacancy.search_url ? (
+                    <a 
+                      href={vacancy.search_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      View URL
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {vacancy.note_sent || "-"}
                 </TableCell>
                 <TableCell>
                   {new Date(vacancy.created_at).toLocaleDateString()}
@@ -341,7 +402,7 @@ export default function VacancyPage() {
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Vacancy</DialogTitle>
           </DialogHeader>
@@ -379,6 +440,26 @@ export default function VacancyPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Enter vacancy description"
                 rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editSearchUrl">Search URL (Optional)</Label>
+              <Input
+                id="editSearchUrl"
+                value={searchUrl}
+                onChange={(e) => setSearchUrl(e.target.value)}
+                placeholder="Enter search URL"
+                type="url"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editNoteSent">Note Sent (Optional)</Label>
+              <Textarea
+                id="editNoteSent"
+                value={noteSent}
+                onChange={(e) => setNoteSent(e.target.value)}
+                placeholder="Enter note sent"
+                rows={2}
               />
             </div>
             <div className="flex gap-2">
