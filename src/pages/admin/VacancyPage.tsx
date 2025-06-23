@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useVacancies } from "@/hooks/useVacancies";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -31,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import VacancyDetailsModal from "@/components/VacancyDetailsModal";
 
 export default function VacancyPage() {
   const { vacancies, loading, refetch } = useVacancies();
@@ -46,6 +46,8 @@ export default function VacancyPage() {
   const [noteSent, setNoteSent] = useState("");
   const [filterCompanyId, setFilterCompanyId] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedVacancy, setSelectedVacancy] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const filteredVacancies = filterCompanyId === "all"
     ? vacancies
@@ -215,6 +217,16 @@ export default function VacancyPage() {
     setIsEditDialogOpen(true);
   };
 
+  const openDetailsModal = (vacancy: any) => {
+    setSelectedVacancy(vacancy);
+    setIsDetailsModalOpen(true);
+  };
+
+  const closeDetailsModal = () => {
+    setSelectedVacancy(null);
+    setIsDetailsModalOpen(false);
+  };
+
   const resetForm = () => {
     setVacancyTitle("");
     setCompanyId("");
@@ -354,25 +366,41 @@ export default function VacancyPage() {
               <TableRow key={vacancy.id}>
                 <TableCell>{vacancy.title}</TableCell>
                 <TableCell>{vacancy.companies?.name || 'N/A'}</TableCell>
-                <TableCell className="max-w-xs truncate">
-                  {vacancy.description || "-"}
-                </TableCell>
-                <TableCell className="max-w-xs truncate">
-                  {vacancy.search_url ? (
-                    <a 
-                      href={vacancy.search_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                <TableCell className="max-w-xs">
+                  {vacancy.description ? (
+                    <button
+                      onClick={() => openDetailsModal(vacancy)}
+                      className="text-blue-600 hover:underline text-left truncate block w-full"
                     >
-                      View URL
-                    </a>
+                      {vacancy.description.substring(0, 50)}...
+                    </button>
                   ) : (
                     "-"
                   )}
                 </TableCell>
-                <TableCell className="max-w-xs truncate">
-                  {vacancy.note_sent || "-"}
+                <TableCell className="max-w-xs">
+                  {vacancy.search_url ? (
+                    <button
+                      onClick={() => openDetailsModal(vacancy)}
+                      className="text-blue-600 hover:underline text-left truncate block w-full"
+                    >
+                      View URL
+                    </button>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell className="max-w-xs">
+                  {vacancy.note_sent ? (
+                    <button
+                      onClick={() => openDetailsModal(vacancy)}
+                      className="text-blue-600 hover:underline text-left truncate block w-full"
+                    >
+                      {vacancy.note_sent.substring(0, 30)}...
+                    </button>
+                  ) : (
+                    "-"
+                  )}
                 </TableCell>
                 <TableCell>
                   {new Date(vacancy.created_at).toLocaleDateString()}
@@ -482,6 +510,12 @@ export default function VacancyPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <VacancyDetailsModal
+        vacancy={selectedVacancy}
+        isOpen={isDetailsModalOpen}
+        onClose={closeDetailsModal}
+      />
     </div>
   );
 }

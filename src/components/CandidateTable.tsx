@@ -1,12 +1,5 @@
 
 import { useState } from "react";
-import { Search, Calendar } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -15,169 +8,130 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-interface Company {
-  id: number;
-  name: string;
-  created_at: string;
-}
-
-interface Vacancy {
-  id: number;
-  title: string;
-  company_id: number;
-  description: string | null;
-  created_at: string;
-  companies: Company;
-}
+import { Badge } from "@/components/ui/badge";
+import CandidateDetailsModal from "./CandidateDetailsModal";
 
 interface Candidate {
-  id: string;
+  id: number;
   name: string;
-  profile_url: string | null;
-  note_sent: string | null;
-  connection_status: string | null;
-  out_reach: string | null;
+  email: string;
+  phone: string | null;
+  position: string | null;
+  cv_url: string | null;
+  portfolio_url: string | null;
+  notes: string | null;
+  status: string;
   vacancy_id: number | null;
   created_at: string;
-  vacancies: Vacancy | null;
+  vacancies?: {
+    id: number;
+    title: string;
+    company_id: number;
+    companies?: {
+      name: string;
+    };
+  } | null;
 }
 
 interface CandidateTableProps {
   candidates: Candidate[];
 }
 
-const CandidateTable = ({ candidates }: CandidateTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+export default function CandidateTable({ candidates }: CandidateTableProps) {
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  const filteredCandidates = candidates.filter(candidate => {
-    const matchesSearch = 
-      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.vacancies?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.vacancies?.companies?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.connection_status?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesDate = selectedDate 
-      ? candidate.out_reach && new Date(candidate.out_reach).toDateString() === selectedDate.toDateString()
-      : true;
-
-    return matchesSearch && matchesDate;
-  });
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getConnectionStatusVariant = (status: string | null) => {
-    switch (status?.toLowerCase()) {
-      case 'connected': return 'default';
-      case 'pending': return 'secondary';
-      case 'rejected': return 'destructive';
-      default: return 'outline';
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'hired': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'interview': return 'bg-blue-100 text-blue-800';
+      case 'applied': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search candidates by name, vacancy, company, or status..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
-              <Calendar className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-        {selectedDate && (
-          <Button variant="ghost" onClick={() => setSelectedDate(undefined)}>
-            Clear date
-          </Button>
-        )}
-      </div>
+  const openDetailsModal = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setIsDetailsModalOpen(true);
+  };
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Vacancy</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Outreach Date</TableHead>
-              <TableHead>Note</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCandidates.map((candidate) => (
-              <TableRow key={candidate.id}>
-                <TableCell>
+  const closeDetailsModal = () => {
+    setSelectedCandidate(null);
+    setIsDetailsModalOpen(false);
+  };
+
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Position</TableHead>
+            <TableHead>Vacancy</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Notes</TableHead>
+            <TableHead>Applied Date</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {candidates.map((candidate) => (
+            <TableRow key={candidate.id}>
+              <TableCell className="font-medium">
+                <button
+                  onClick={() => openDetailsModal(candidate)}
+                  className="text-blue-600 hover:underline text-left"
+                >
+                  {candidate.name}
+                </button>
+              </TableCell>
+              <TableCell>{candidate.email}</TableCell>
+              <TableCell>{candidate.position || 'N/A'}</TableCell>
+              <TableCell>
+                {candidate.vacancies ? (
                   <div>
-                    <p className="font-medium">{candidate.name}</p>
-                    {candidate.profile_url && (
-                      <a 
-                        href={candidate.profile_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        View Profile
-                      </a>
+                    <div className="font-medium">{candidate.vacancies.title}</div>
+                    {candidate.vacancies.companies?.name && (
+                      <div className="text-sm text-gray-500">
+                        {candidate.vacancies.companies.name}
+                      </div>
                     )}
                   </div>
-                </TableCell>
-                <TableCell>{candidate.vacancies?.title || 'No vacancy'}</TableCell>
-                <TableCell>{candidate.vacancies?.companies?.name || 'No company'}</TableCell>
-                <TableCell>
-                  <Badge variant={getConnectionStatusVariant(candidate.connection_status)}>
-                    {candidate.connection_status || 'No status'}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDate(candidate.out_reach)}</TableCell>
-                <TableCell>
-                  <div className="max-w-xs truncate">
-                    {candidate.note_sent || 'No note'}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                ) : (
+                  'N/A'
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(candidate.status)}>
+                  {candidate.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="max-w-xs">
+                {candidate.notes ? (
+                  <button
+                    onClick={() => openDetailsModal(candidate)}
+                    className="text-blue-600 hover:underline text-left truncate block w-full"
+                  >
+                    {candidate.notes.substring(0, 30)}...
+                  </button>
+                ) : (
+                  '-'
+                )}
+              </TableCell>
+              <TableCell>
+                {new Date(candidate.created_at).toLocaleDateString()}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
-        {filteredCandidates.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No candidates found matching your search.
-          </div>
-        )}
-      </div>
-
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredCandidates.length} of {candidates.length} candidates
-      </div>
-    </div>
+      <CandidateDetailsModal
+        candidate={selectedCandidate}
+        isOpen={isDetailsModalOpen}
+        onClose={closeDetailsModal}
+      />
+    </>
   );
-};
-
-export default CandidateTable;
+}
