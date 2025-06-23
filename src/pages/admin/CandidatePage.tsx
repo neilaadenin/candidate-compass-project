@@ -28,10 +28,10 @@ export default function CandidatePage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email/Profile</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Portfolio</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead>Profile URL</TableHead>
+              <TableHead>Connection Status</TableHead>
+              <TableHead>Outreach Date</TableHead>
+              <TableHead>Note Sent</TableHead>
               <TableHead>Created At</TableHead>
             </TableRow>
           </TableHeader>
@@ -40,9 +40,9 @@ export default function CandidatePage() {
               <TableRow key={candidate.id}>
                 <TableCell className="font-medium">{candidate.name}</TableCell>
                 <TableCell>
-                  {candidate.email ? (
+                  {candidate.profile_url ? (
                     <a 
-                      href={candidate.email} 
+                      href={candidate.profile_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
@@ -54,30 +54,22 @@ export default function CandidatePage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {candidate.status ? (
-                    <Badge variant={candidate.status === 'connected' ? 'default' : 'secondary'}>
-                      {candidate.status}
+                  {candidate.connection_status ? (
+                    <Badge variant={candidate.connection_status === 'connected' ? 'default' : 'secondary'}>
+                      {candidate.connection_status}
                     </Badge>
                   ) : (
                     "-"
                   )}
                 </TableCell>
                 <TableCell>
-                  {candidate.portfolio_url ? (
-                    <a 
-                      href={candidate.portfolio_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      View Portfolio
-                    </a>
-                  ) : (
+                  {candidate.out_reach ? 
+                    new Date(candidate.out_reach).toLocaleDateString() : 
                     "-"
-                  )}
+                  }
                 </TableCell>
                 <TableCell className="max-w-xs truncate">
-                  {candidate.notes || "-"}
+                  {candidate.note_sent || "-"}
                 </TableCell>
                 <TableCell>
                   {new Date(candidate.created_at).toLocaleDateString()}

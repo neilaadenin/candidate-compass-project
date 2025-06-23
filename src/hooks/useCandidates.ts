@@ -5,15 +5,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Candidate {
-  id: number;
+  id: string;
   name: string;
-  email: string;
-  phone: string | null;
-  position: string | null;
-  cv_url: string | null;
-  portfolio_url: string | null;
-  notes: string | null;
-  status: string;
+  profile_url: string | null;
+  note_sent: string | null;
+  connection_status: string | null;
+  out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
 }
@@ -48,25 +45,8 @@ export const useCandidates = () => {
         return;
       }
 
-      console.log('Raw candidates data from database:', data);
-
-      // Transform the database data to match the expected Candidate interface
-      const transformedCandidates = (data || []).map(candidate => ({
-        id: parseInt(candidate.id) || 0,
-        name: candidate.name || '',
-        email: candidate.profile_url || '', // Using profile_url as email for now
-        phone: candidate.connection_status || null,
-        position: null, // Not available in current schema
-        cv_url: candidate.profile_url || null,
-        portfolio_url: candidate.search_url || null,
-        notes: candidate.note_sent || null,
-        status: candidate.connection_status || 'applied', // Default status
-        vacancy_id: candidate.vacancy_id || null,
-        created_at: candidate.created_at || new Date().toISOString(),
-      }));
-
-      console.log('Transformed candidates:', transformedCandidates);
-      setCandidates(transformedCandidates);
+      console.log('Candidates fetched successfully:', data);
+      setCandidates(data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');
