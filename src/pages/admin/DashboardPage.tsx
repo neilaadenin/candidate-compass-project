@@ -16,6 +16,10 @@ export default function DashboardPage() {
   const { companies } = useCompanies();
   const { vacancies } = useVacancies();
 
+  console.log('All vacancies:', vacancies);
+  console.log('All companies:', companies);
+  console.log('Selected company filter:', companyFilter);
+
   // Create candidates with vacancy and company information
   const enrichedCandidates = candidates.map(candidate => {
     const vacancy = candidate.vacancy_id 
@@ -28,10 +32,15 @@ export default function DashboardPage() {
     };
   });
 
-  // Filter vacancies based on selected company
+  // Filter vacancies based on selected company - this is the key fix
   const filteredVacancies = companyFilter === "all" 
     ? vacancies 
-    : vacancies.filter(vacancy => vacancy.company_id === parseInt(companyFilter));
+    : vacancies.filter(vacancy => {
+        console.log(`Checking vacancy ${vacancy.title} with company_id ${vacancy.company_id} against selected company ${companyFilter}`);
+        return vacancy.company_id === parseInt(companyFilter);
+      });
+
+  console.log('Filtered vacancies for dropdown:', filteredVacancies);
 
   // Reset vacancy filter when company filter changes
   useEffect(() => {
@@ -41,13 +50,17 @@ export default function DashboardPage() {
         vacancy => vacancy.id === parseInt(vacancyFilter)
       );
       
-      if (!isVacancyValidForCompany) {
+      if (!isVacancyValidForCompany && vacancyFilter !== "all") {
+        console.log('Resetting vacancy filter because current selection is not valid for selected company');
         setVacancyFilter("all");
       }
+    } else {
+      // When "all companies" is selected, reset vacancy filter
+      setVacancyFilter("all");
     }
   }, [companyFilter, filteredVacancies, vacancyFilter]);
 
-  // Filter candidates
+  // Filter candidates based on both company and vacancy filters
   const filteredCandidates = enrichedCandidates.filter(candidate => {
     const matchesCompany = companyFilter === "all" || 
       (candidate.vacancies?.company_id === parseInt(companyFilter));
@@ -55,15 +68,19 @@ export default function DashboardPage() {
     const matchesVacancy = vacancyFilter === "all" || 
       (candidate.vacancy_id === parseInt(vacancyFilter));
     
+    console.log(`Candidate ${candidate.name}: company match = ${matchesCompany}, vacancy match = ${matchesVacancy}`);
+    
     return matchesCompany && matchesVacancy;
   });
 
   const handleCompanyFilterChange = (value: string) => {
+    console.log('Company filter changed to:', value);
     setCompanyFilter(value);
-    // Reset vacancy filter when company changes
-    if (value === "all") {
-      setVacancyFilter("all");
-    }
+  };
+
+  const handleVacancyFilterChange = (value: string) => {
+    console.log('Vacancy filter changed to:', value);
+    setVacancyFilter(value);
   };
 
   return (
@@ -95,7 +112,7 @@ export default function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={vacancyFilter} onValueChange={setVacancyFilter}>
+            <Select value={vacancyFilter} onValueChange={handleVacancyFilterChange}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All Vacancies" />
               </SelectTrigger>
