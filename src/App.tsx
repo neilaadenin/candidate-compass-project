@@ -14,6 +14,7 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import CompanyPage from "./pages/admin/CompanyPage";
 import VacancyPage from "./pages/admin/VacancyPage";
 import CandidatePage from "./pages/admin/CandidatePage";
+import StatisticsPage from "./pages/admin/StatisticsPage";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,13 @@ const App = () => (
               <ProtectedRoute>
                 <AdminLayout>
                   <CandidatePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/statistics" element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <StatisticsPage />
                 </AdminLayout>
               </ProtectedRoute>
             } />
