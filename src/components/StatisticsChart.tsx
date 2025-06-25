@@ -50,62 +50,57 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
 
   return (
     <div className="space-y-6">
-      {/* Summary Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <Info className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Ringkasan Statistik</h3>
-              <p className="text-gray-700 leading-relaxed">
-                {getDisplayText()}
-              </p>
-            </div>
+      {/* Summary Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <Info className="h-4 w-4 text-blue-600" />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <h3 className="font-medium text-gray-900 mb-1">Ringkasan Statistik</h3>
+            <p className="text-sm text-gray-700">
+              {getDisplayText()}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Charts Grid */}
+      {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Bar Chart */}
-        <Card className="shadow-sm border-0">
-          <CardHeader className="pb-4">
+        <div className="bg-white border rounded-lg">
+          <div className="p-4 border-b">
             <div className="flex items-center gap-2">
-              <div className="bg-green-100 p-2 rounded-lg">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-              </div>
+              <BarChart3 className="h-5 w-5 text-blue-600" />
               <div>
-                <CardTitle className="text-lg">Outreach vs Applicants</CardTitle>
-                <CardDescription>Perbandingan jumlah outreach dan applicants per posisi</CardDescription>
+                <h3 className="font-semibold text-gray-900">Outreach vs Applicants</h3>
+                <p className="text-sm text-gray-600">Perbandingan jumlah outreach dan applicants per posisi</p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-[350px]">
+          </div>
+          <div className="p-4">
+            <ChartContainer config={{}} className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={chartData} 
-                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-                  barCategoryGap="20%"
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={100}
-                    fontSize={11}
-                    stroke="#6b7280"
+                    height={80}
+                    fontSize={10}
+                    stroke="#64748b"
                   />
-                  <YAxis stroke="#6b7280" fontSize={12} />
+                  <YAxis stroke="#64748b" fontSize={11} />
                   <Tooltip 
                     content={<ChartTooltipContent />}
                     contentStyle={{
                       backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
                   />
@@ -114,35 +109,33 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
                     dataKey="outreach" 
                     fill="#3B82F6" 
                     name="Outreach" 
-                    radius={[4, 4, 0, 0]}
+                    radius={[2, 2, 0, 0]}
                   />
                   <Bar 
                     dataKey="applicants" 
                     fill="#10B981" 
                     name="Applicants" 
-                    radius={[4, 4, 0, 0]}
+                    radius={[2, 2, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Pie Chart */}
-        <Card className="shadow-sm border-0">
-          <CardHeader className="pb-4">
+        <div className="bg-white border rounded-lg">
+          <div className="p-4 border-b">
             <div className="flex items-center gap-2">
-              <div className="bg-purple-100 p-2 rounded-lg">
-                <PieChartIcon className="h-5 w-5 text-purple-600" />
-              </div>
+              <PieChartIcon className="h-5 w-5 text-purple-600" />
               <div>
-                <CardTitle className="text-lg">Conversion Rate</CardTitle>
-                <CardDescription>Persentase konversi per posisi</CardDescription>
+                <h3 className="font-semibold text-gray-900">Conversion Rate</h3>
+                <p className="text-sm text-gray-600">Persentase konversi per posisi</p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-[350px]">
+          </div>
+          <div className="p-4">
+            <ChartContainer config={{}} className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -151,11 +144,11 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) => `${value}%`}
-                    outerRadius={100}
+                    outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                     stroke="#fff"
-                    strokeWidth={2}
+                    strokeWidth={1}
                   >
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -165,20 +158,20 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
                     formatter={(value: any) => [`${value}%`, 'Conversion Rate']}
                     contentStyle={{
                       backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
                   />
                   <Legend 
-                    wrapperStyle={{ paddingTop: '20px' }}
+                    wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }}
                     iconType="circle"
                   />
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
