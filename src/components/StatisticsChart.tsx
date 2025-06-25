@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { StatisticData } from '@/api/statistics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Info, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 
 interface StatisticsChartProps {
   data: StatisticData[];
@@ -15,7 +16,7 @@ interface StatisticsChartProps {
   vacancyFilter: string;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
 
 export default function StatisticsChart({ data, totalStats, companyFilter, vacancyFilter }: StatisticsChartProps) {
   // Prepare data for bar chart
@@ -49,43 +50,78 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
 
   return (
     <div className="space-y-6">
-      {/* Summary Text */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ringkasan Statistik</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg font-medium text-gray-700">
-            {getDisplayText()}
-          </p>
+      {/* Summary Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Info className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Ringkasan Statistik</h3>
+              <p className="text-gray-700 leading-relaxed">
+                {getDisplayText()}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Bar Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Outreach vs Applicants</CardTitle>
-            <CardDescription>Perbandingan jumlah outreach dan applicants per posisi</CardDescription>
+        <Card className="shadow-sm border-0">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-green-100 p-2 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Outreach vs Applicants</CardTitle>
+                <CardDescription>Perbandingan jumlah outreach dan applicants per posisi</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[300px]">
+            <ChartContainer config={{}} className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                <BarChart 
+                  data={chartData} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                  barCategoryGap="20%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
                     height={100}
-                    fontSize={12}
+                    fontSize={11}
+                    stroke="#6b7280"
                   />
-                  <YAxis />
-                  <Tooltip content={<ChartTooltipContent />} />
+                  <YAxis stroke="#6b7280" fontSize={12} />
+                  <Tooltip 
+                    content={<ChartTooltipContent />}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
                   <Legend />
-                  <Bar dataKey="outreach" fill="#3B82F6" name="Outreach" />
-                  <Bar dataKey="applicants" fill="#10B981" name="Applicants" />
+                  <Bar 
+                    dataKey="outreach" 
+                    fill="#3B82F6" 
+                    name="Outreach" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="applicants" 
+                    fill="#10B981" 
+                    name="Applicants" 
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -93,13 +129,20 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
         </Card>
 
         {/* Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversion Rate</CardTitle>
-            <CardDescription>Persentase konversi per posisi</CardDescription>
+        <Card className="shadow-sm border-0">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-purple-100 p-2 rounded-lg">
+                <PieChartIcon className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Conversion Rate</CardTitle>
+                <CardDescription>Persentase konversi per posisi</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[300px]">
+            <ChartContainer config={{}} className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -108,9 +151,11 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) => `${value}%`}
-                    outerRadius={80}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
+                    stroke="#fff"
+                    strokeWidth={2}
                   >
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -118,8 +163,17 @@ export default function StatisticsChart({ data, totalStats, companyFilter, vacan
                   </Pie>
                   <Tooltip 
                     formatter={(value: any) => [`${value}%`, 'Conversion Rate']}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
                   />
-                  <Legend />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="circle"
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
