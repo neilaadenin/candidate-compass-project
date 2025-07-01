@@ -64,9 +64,9 @@ export default function StatisticsPage() {
     setVacancyFilter(value);
     
     // Find the selected job vacancy
-    const selectedVacancy = jobVacancies.find(jv => jv.position === value);
+    const selectedVacancy = jobVacancies.find(jv => jv.name === value);
     if (selectedVacancy) {
-      fetchStatisticsForVacancy(selectedVacancy.job_vacancy_uuid, companyFilter, value);
+      fetchStatisticsForVacancy(selectedVacancy.uuid, companyFilter, value);
     }
   };
 

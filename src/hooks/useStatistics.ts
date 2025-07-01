@@ -84,7 +84,7 @@ export const useStatistics = () => {
   };
   
   const getVacanciesForCompany = (companyName: string) => {
-    return jobVacancies.map(vacancy => vacancy.position);
+    return jobVacancies.map(vacancy => vacancy.name);
   };
 
   const getFilteredData = (companyFilter: string, vacancyFilter: string) => {
