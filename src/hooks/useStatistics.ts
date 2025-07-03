@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { getCompanies, getJobVacancies, getCandidates, transformCandidatesToStatistics, Company, JobVacancy, StatisticData } from '@/api/statistics';
 import { useToast } from '@/hooks/use-toast';
@@ -125,3 +126,4 @@ export const useStatistics = () => {
     refetch: fetchCompanies,
   };
 };
+

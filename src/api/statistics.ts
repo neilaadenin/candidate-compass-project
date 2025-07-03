@@ -1,4 +1,5 @@
 
+
 // Real API endpoints for statistics
 export interface Company {
   id: number;
@@ -136,3 +137,4 @@ export const transformCandidatesToStatistics = (candidates: Candidate[], company
     applicants: applicants
   };
 };
+
