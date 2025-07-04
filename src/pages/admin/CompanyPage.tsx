@@ -1,302 +1,191 @@
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Filter, Building, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { useStatistics } from "@/hooks/useStatistics";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCandidates } from "@/api/statistics";
 
 export default function CompanyPage() {
-  const { companies, loading, refetch } = useCompanies();
-  const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<any>(null);
-  const [companyName, setCompanyName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [vacancyFilter, setVacancyFilter] = useState("");
+  
+  const { companies: supabaseCompanies, loading: companiesLoading, refetch } = useCompanies();
+  const {
+    companies,
+    jobVacancies,
+    getCompanyByName,
+    fetchJobVacancies,
+    loading: statisticsLoading
+  } = useStatistics();
+  const { syncAllData, syncing } = useDataSync();
 
-  const handleAddCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
+  console.log('CompanyPage - Current state:', {
+    companyFilter,
+    vacancyFilter,
+    companies: companies.length,
+    jobVacancies: jobVacancies.length,
+    supabaseCompanies: supabaseCompanies.length
+  });
+
+  const handleCompanyFilterChange = async (companyName: string) => {
+    console.log('Company filter changed to:', companyName);
+    setCompanyFilter(companyName);
+    setVacancyFilter("");
     
-    if (!companyName.trim()) {
-      toast({
-        title: "Error",
-        description: "Company name is required",
-        variant: "destructive",
-      });
+    const company = getCompanyByName(companyName);
+    if (company) {
+      console.log('Fetching vacancies for company:', company.company_uuid);
+      await fetchJobVacancies(company.company_uuid);
+    }
+  };
+
+  const handleVacancyFilterChange = (vacancyName: string) => {
+    console.log('Vacancy filter changed to:', vacancyName);
+    setVacancyFilter(vacancyName);
+  };
+
+  const handleSync = async () => {
+    if (!companyFilter || !vacancyFilter) {
       return;
     }
 
-    setIsSubmitting(true);
-    console.log("Adding company:", companyName.trim());
-
-    try {
-      const { data, error } = await supabase
-        .from("companies")
-        .insert([{ name: companyName.trim() }])
-        .select();
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log("Company added successfully:", data);
-      toast({
-        title: "Success",
-        description: "Company added successfully",
-      });
-      
-      setCompanyName("");
-      setIsAddDialogOpen(false);
-      refetch();
-    } catch (error: any) {
-      console.error("Error adding company:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add company",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const company = getCompanyByName(companyFilter);
+    const vacancy = jobVacancies.find(v => v.name === vacancyFilter);
     
-    if (!companyName.trim() || !editingCompany) {
-      toast({
-        title: "Error",
-        description: "Company name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    console.log("Updating company:", editingCompany.id, companyName.trim());
-
-    try {
-      const { data, error } = await supabase
-        .from("companies")
-        .update({ name: companyName.trim() })
-        .eq("id", editingCompany.id)
-        .select();
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
+    if (company && vacancy) {
+      try {
+        // Get the real candidates data from the API
+        const candidatesData = await getCandidates(vacancy.uuid);
+        
+        await syncAllData([company], [vacancy], candidatesData, vacancy.id);
+        
+        // Refresh the local company data after sync
+        refetch();
+      } catch (error) {
+        console.error('Error during sync:', error);
       }
-
-      console.log("Company updated successfully:", data);
-      toast({
-        title: "Success",
-        description: "Company updated successfully",
-      });
-      
-      setCompanyName("");
-      setEditingCompany(null);
-      setIsEditDialogOpen(false);
-      refetch();
-    } catch (error: any) {
-      console.error("Error updating company:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update company",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const handleDeleteCompany = async (companyId: number) => {
-    if (!confirm("Are you sure you want to delete this company?")) return;
-
-    console.log("Deleting company:", companyId);
-
-    try {
-      const { error } = await supabase
-        .from("companies")
-        .delete()
-        .eq("id", companyId);
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log("Company deleted successfully");
-      toast({
-        title: "Success",
-        description: "Company deleted successfully",
-      });
-      
-      refetch();
-    } catch (error: any) {
-      console.error("Error deleting company:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete company",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const openEditDialog = (company: any) => {
-    console.log("Opening edit dialog for company:", company);
-    setEditingCompany(company);
-    setCompanyName(company.name);
-    setIsEditDialogOpen(true);
-  };
-
-  if (loading) {
-    return <div>Loading companies...</div>;
-  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Companies</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Company
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
+          <p className="text-gray-600 mt-1">Manage companies and sync data from external sources</p>
+        </div>
+      </div>
+
+      {/* Filters and Sync Button */}
+      <Card className="bg-white shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4 mb-4">
+            <Filter className="h-5 w-5 text-gray-500" />
+            <span className="font-medium text-gray-700">Sync Filters:</span>
+            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select Company" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.company_name}>
+                    {company.company_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select 
+              value={vacancyFilter} 
+              onValueChange={handleVacancyFilterChange}
+              disabled={!companyFilter}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select Vacancy" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobVacancies.map((vacancy) => (
+                  <SelectItem key={vacancy.id} value={vacancy.name}>
+                    {vacancy.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button 
+              onClick={handleSync}
+              disabled={!companyFilter || !vacancyFilter || syncing}
+              className="ml-auto"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync to Supabase'}
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Company</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddCompany} className="space-y-4">
-              <div>
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  id="companyName"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Enter company name"
-                  required
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding..." : "Add Company"}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setCompanyName("");
-                    setIsAddDialogOpen(false);
-                  }}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {companies.map((company) => (
-              <TableRow key={company.id}>
-                <TableCell>{company.id}</TableCell>
-                <TableCell>{company.name}</TableCell>
-                <TableCell>
-                  {new Date(company.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditDialog(company)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteCompany(company.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+      {/* Show message if no company/vacancy selected for sync */}
+      {(!companyFilter || !vacancyFilter) && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Building className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Select Company and Vacancy to Sync
+              </h3>
+              <p className="text-blue-700">
+                Choose both a company and vacancy from the filters above to sync external data to Supabase.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Company Database Section */}
+      <Card className="bg-white shadow-sm">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            <CardTitle>Company Database</CardTitle>
+          </div>
+          <CardDescription>
+            Current companies stored in Supabase database
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {(companiesLoading || statisticsLoading) ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading companies...</p>
+            </div>
+          ) : supabaseCompanies.length > 0 ? (
+            <div className="grid gap-4">
+              {supabaseCompanies.map((company) => (
+                <Card key={company.id} className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-lg">{company.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">ID: {company.id}</p>
+                    </div>
+                    <div className="text-right text-sm text-gray-500">
+                      <p>Created: {new Date(company.created_at).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Company</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditCompany} className="space-y-4">
-            <div>
-              <Label htmlFor="editCompanyName">Company Name</Label>
-              <Input
-                id="editCompanyName"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Enter company name"
-                required
-              />
+                </Card>
+              ))}
             </div>
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Update Company"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setCompanyName("");
-                  setEditingCompany(null);
-                  setIsEditDialogOpen(false);
-                }}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No companies found in database. Use the sync functionality above to import data.
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
