@@ -1,86 +1,115 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, Users, Building2 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useCandidates } from "@/hooks/useCandidates";
-import { useCompanies } from "@/hooks/useCompanies";
-import { useVacancies } from "@/hooks/useVacancies";
+import { Button } from "@/components/ui/button";
+import { Filter, Users, Building2, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { useStatistics } from "@/hooks/useStatistics";
+import { useDataSync } from "@/hooks/useDataSync";
+import { getCandidates } from "@/api/statistics";
 import CandidateTable from "@/components/CandidateTable";
 
 export default function DashboardPage() {
-  const [companyFilter, setCompanyFilter] = useState("all");
-  const [vacancyFilter, setVacancyFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [vacancyFilter, setVacancyFilter] = useState("");
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const { candidates, loading: candidatesLoading } = useCandidates();
-  const { companies } = useCompanies();
-  const { vacancies } = useVacancies();
+  const {
+    companies,
+    jobVacancies,
+    getCompanyByName,
+    fetchJobVacancies,
+    loading: statisticsLoading
+  } = useStatistics();
 
-  console.log('All vacancies:', vacancies);
-  console.log('All companies:', companies);
-  console.log('Selected company filter:', companyFilter);
+  const { syncAllData, syncing } = useDataSync();
 
-  // Create candidates with vacancy and company information
-  const enrichedCandidates = candidates.map(candidate => {
-    const vacancy = candidate.vacancy_id 
-      ? vacancies.find(v => v.id === candidate.vacancy_id)
-      : null;
-    
-    return {
-      ...candidate,
-      vacancies: vacancy
-    };
+  console.log('Dashboard - Current state:', {
+    companyFilter,
+    vacancyFilter,
+    companies: companies.length,
+    jobVacancies: jobVacancies.length,
+    candidates: candidates.length
   });
 
-  // Filter vacancies based on selected company - this is the key fix
-  const filteredVacancies = companyFilter === "all" 
-    ? vacancies 
-    : vacancies.filter(vacancy => {
-        console.log(`Checking vacancy ${vacancy.title} with company_id ${vacancy.company_id} against selected company ${companyFilter}`);
-        return vacancy.company_id === parseInt(companyFilter);
-      });
-
-  console.log('Filtered vacancies for dropdown:', filteredVacancies);
-
-  // Reset vacancy filter when company filter changes
-  useEffect(() => {
-    if (companyFilter !== "all") {
-      // Check if current vacancy filter is still valid for the selected company
-      const isVacancyValidForCompany = filteredVacancies.some(
-        vacancy => vacancy.id === parseInt(vacancyFilter)
-      );
-      
-      if (!isVacancyValidForCompany && vacancyFilter !== "all") {
-        console.log('Resetting vacancy filter because current selection is not valid for selected company');
-        setVacancyFilter("all");
-      }
-    } else {
-      // When "all companies" is selected, reset vacancy filter
-      setVacancyFilter("all");
+  const handleCompanyFilterChange = async (companyName: string) => {
+    console.log('Company filter changed to:', companyName);
+    setCompanyFilter(companyName);
+    setVacancyFilter("");
+    setCandidates([]);
+    
+    const company = getCompanyByName(companyName);
+    if (company) {
+      console.log('Fetching vacancies for company:', company.company_uuid);
+      await fetchJobVacancies(company.company_uuid);
     }
-  }, [companyFilter, filteredVacancies, vacancyFilter]);
-
-  // Filter candidates based on both company and vacancy filters
-  const filteredCandidates = enrichedCandidates.filter(candidate => {
-    const matchesCompany = companyFilter === "all" || 
-      (candidate.vacancies?.company_id === parseInt(companyFilter));
-    
-    const matchesVacancy = vacancyFilter === "all" || 
-      (candidate.vacancy_id === parseInt(vacancyFilter));
-    
-    console.log(`Candidate ${candidate.name}: company match = ${matchesCompany}, vacancy match = ${matchesVacancy}`);
-    
-    return matchesCompany && matchesVacancy;
-  });
-
-  const handleCompanyFilterChange = (value: string) => {
-    console.log('Company filter changed to:', value);
-    setCompanyFilter(value);
   };
 
-  const handleVacancyFilterChange = (value: string) => {
-    console.log('Vacancy filter changed to:', value);
-    setVacancyFilter(value);
+  const handleVacancyFilterChange = async (vacancyName: string) => {
+    console.log('Vacancy filter changed to:', vacancyName);
+    setVacancyFilter(vacancyName);
+    
+    const vacancy = jobVacancies.find(v => v.name === vacancyName);
+    if (vacancy) {
+      try {
+        setLoading(true);
+        console.log('Fetching candidates for vacancy:', vacancy.uuid);
+        const candidatesData = await getCandidates(vacancy.uuid);
+        
+        // Transform candidates to match the expected format for the table
+        const transformedCandidates = candidatesData.map(candidate => ({
+          id: candidate.id.toString(),
+          name: candidate.name,
+          profile_url: candidate.resume_file_url,
+          note_sent: `${candidate.job_title} - ${candidate.category.join(', ')}`,
+          connection_status: candidate.status === 1 ? 'active' : 'inactive',
+          out_reach: candidate.created_at,
+          vacancy_id: vacancy.id,
+          created_at: candidate.created_at,
+          vacancies: {
+            id: vacancy.id,
+            title: vacancy.name,
+            company_id: vacancy.company_id,
+            description: vacancy.description,
+            created_at: vacancy.created_at,
+            companies: {
+              id: vacancy.company_id,
+              name: companyFilter,
+              created_at: vacancy.created_at
+            }
+          }
+        }));
+        
+        console.log('Transformed candidates:', transformedCandidates);
+        setCandidates(transformedCandidates);
+      } catch (error) {
+        console.error('Error fetching candidates:', error);
+        setCandidates([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleSync = async () => {
+    if (!companyFilter || !vacancyFilter) {
+      return;
+    }
+
+    const company = getCompanyByName(companyFilter);
+    const vacancy = jobVacancies.find(v => v.name === vacancyFilter);
+    
+    if (company && vacancy) {
+      try {
+        // Get the real candidates data from the API
+        const candidatesData = await getCandidates(vacancy.uuid);
+        
+        await syncAllData([company], [vacancy], candidatesData, vacancy.id);
+      } catch (error) {
+        console.error('Error during sync:', error);
+      }
+    }
   };
 
   return (
@@ -93,7 +122,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters and Sync Button */}
       <Card className="bg-white shadow-sm">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4 mb-4">
@@ -101,64 +130,95 @@ export default function DashboardPage() {
             <span className="font-medium text-gray-700">Filters:</span>
             <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Companies" />
+                <SelectValue placeholder="Select Company" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
                 {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id.toString()}>
-                    {company.name}
+                  <SelectItem key={company.id} value={company.company_name}>
+                    {company.company_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={vacancyFilter} onValueChange={handleVacancyFilterChange}>
+            
+            <Select 
+              value={vacancyFilter} 
+              onValueChange={handleVacancyFilterChange}
+              disabled={!companyFilter}
+            >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Vacancies" />
+                <SelectValue placeholder="Select Vacancy" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Vacancies</SelectItem>
-                {filteredVacancies.map((vacancy) => (
-                  <SelectItem key={vacancy.id} value={vacancy.id.toString()}>
-                    {vacancy.title}
+                {jobVacancies.map((vacancy) => (
+                  <SelectItem key={vacancy.id} value={vacancy.name}>
+                    {vacancy.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
+            <Button 
+              onClick={handleSync}
+              disabled={!companyFilter || !vacancyFilter || syncing}
+              className="ml-auto"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync to Supabase'}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats Cards - Only Total Candidates and Companies */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Candidates</p>
-                <p className="text-3xl font-bold text-gray-900">{filteredCandidates.length}</p>
-                <p className="text-sm text-gray-500">Filtered candidates</p>
-              </div>
-              <Users className="h-8 w-8 text-gray-400" />
+      {/* Show message if no company/vacancy selected */}
+      {(!companyFilter || !vacancyFilter) && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Building2 className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Select Company and Vacancy
+              </h3>
+              <p className="text-blue-700">
+                Please select both a company and vacancy from the filters above to view candidates.
+              </p>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Companies</p>
-                <p className="text-3xl font-bold text-gray-900">{companies.length}</p>
-                <p className="text-sm text-gray-500">Total companies</p>
+      {/* Stats Cards - Only show when data is available */}
+      {candidates.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Candidates</p>
+                  <p className="text-3xl font-bold text-gray-900">{candidates.length}</p>
+                  <p className="text-sm text-gray-500">For selected vacancy</p>
+                </div>
+                <Users className="h-8 w-8 text-gray-400" />
               </div>
-              <Building2 className="h-8 w-8 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
 
-      {/* Candidate Database Section - Always Table View */}
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Companies</p>
+                  <p className="text-3xl font-bold text-gray-900">{companies.length}</p>
+                  <p className="text-sm text-gray-500">Total companies</p>
+                </div>
+                <Building2 className="h-8 w-8 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Candidate Database Section */}
       <Card className="bg-white shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -166,18 +226,22 @@ export default function DashboardPage() {
             <CardTitle>Candidate Database</CardTitle>
           </div>
           <CardDescription>
-            Browse candidates with search and filter capabilities
+            Browse candidates with search and filter capabilities - showing real API data
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {candidatesLoading ? (
+          {(loading || statisticsLoading) ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-500">Loading candidates...</p>
             </div>
-          ) : (
-            <CandidateTable candidates={filteredCandidates} />
-          )}
+          ) : candidates.length > 0 ? (
+            <CandidateTable candidates={candidates} />
+          ) : companyFilter && vacancyFilter ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No candidates found for the selected vacancy.
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>
