@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,7 +60,19 @@ export function useInterviewSchedules() {
       const { data, error } = await supabase
         .from('interview_schedules')
         .select(`
-          *,
+          schedules_uuid,
+          vacancy_uuid,
+          company_uuid,
+          candidate_name,
+          interview_date,
+          interview_time,
+          interview_location,
+          interview_type,
+          interviewer_name,
+          meeting_link,
+          status,
+          created_at,
+          updated_at,
           vacancy:vacancies(title, vacancy_title),
           company:companies(name),
           candidate:candidates(candidates_name)
@@ -80,7 +91,15 @@ export function useInterviewSchedules() {
       }
 
       console.log('Interview schedules fetched successfully:', data);
-      setSchedules(data || []);
+      
+      // Transform the data to match our interface, adding missing candidate_id as 0 for now
+      const transformedSchedules = (data || []).map(schedule => ({
+        ...schedule,
+        candidate_id: 0, // Default value since it's not in the current database structure
+        created_at: schedule.created_at || new Date().toISOString()
+      }));
+      
+      setSchedules(transformedSchedules);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');

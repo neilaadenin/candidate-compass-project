@@ -13,6 +13,8 @@ interface Company {
 interface Vacancy {
   id: number;
   title: string;
+  vacancy_uuid: string;
+  vacancy_title: string;
   company_id: number;
   description: string | null;
   search_url: string | null;
@@ -38,7 +40,14 @@ export const useVacancies = () => {
       const { data, error } = await supabase
         .from('vacancies')
         .select(`
-          *,
+          id,
+          title,
+          vacancy_uuid,
+          vacancy_title,
+          description,
+          search_url,
+          note_sent,
+          created_at,
           companies (
             id,
             name,
@@ -64,6 +73,8 @@ export const useVacancies = () => {
       const transformedVacancies = (data || []).map(vacancy => ({
         id: vacancy.id,
         title: vacancy.title || vacancy.vacancy_title || 'Untitled Position',
+        vacancy_uuid: vacancy.vacancy_uuid,
+        vacancy_title: vacancy.vacancy_title || vacancy.title || 'Untitled Position',
         company_id: vacancy.companies?.id || 0,
         description: vacancy.description || vacancy.vacancy_description,
         search_url: vacancy.search_url,

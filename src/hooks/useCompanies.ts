@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface Company {
   id: number;
   name: string;
+  company_uuid: string;
   created_at: string;
 }
 
@@ -26,7 +27,7 @@ export const useCompanies = () => {
 
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, name, company_uuid, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
