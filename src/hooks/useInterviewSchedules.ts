@@ -7,7 +7,6 @@ export interface InterviewSchedule {
   schedules_uuid: string;
   vacancy_uuid: string;
   company_uuid: string;
-  candidate_id: number;
   candidate_name: string;
   interview_date: string;
   interview_time: string;
@@ -31,7 +30,6 @@ export interface InterviewSchedule {
 export interface CreateInterviewScheduleData {
   vacancy_uuid: string;
   company_uuid: string;
-  candidate_id: number;
   candidate_name: string;
   interview_date: string;
   interview_time: string;
@@ -96,7 +94,6 @@ export function useInterviewSchedules() {
         schedules_uuid: schedule.schedules_uuid,
         vacancy_uuid: schedule.vacancy_uuid,
         company_uuid: schedule.company_uuid,
-        candidate_id: 0, // Default value since it's not in the current database structure
         candidate_name: schedule.candidate_name,
         interview_date: schedule.interview_date,
         interview_time: schedule.interview_time,

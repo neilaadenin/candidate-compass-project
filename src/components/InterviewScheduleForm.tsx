@@ -24,7 +24,6 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
   const [formData, setFormData] = useState<CreateInterviewScheduleData>({
     vacancy_uuid: schedule?.vacancy_uuid || '',
     company_uuid: schedule?.company_uuid || '',
-    candidate_id: schedule?.candidate_id || 0,
     candidate_name: schedule?.candidate_name || '',
     interview_date: schedule?.interview_date || '',
     interview_time: schedule?.interview_time || '',
@@ -50,13 +49,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
       return;
     }
 
-    // Set a default candidate_id since it's required but not used for selection anymore
-    const submitData = {
-      ...formData,
-      candidate_id: formData.candidate_id || 1
-    };
-
-    const success = await onSubmit(submitData);
+    const success = await onSubmit(formData);
     if (success) {
       onCancel();
     }
