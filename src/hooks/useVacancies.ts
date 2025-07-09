@@ -45,6 +45,7 @@ export const useVacancies = () => {
           vacancy_uuid,
           vacancy_title,
           description,
+          vacancy_description,
           search_url,
           note_sent,
           created_at,

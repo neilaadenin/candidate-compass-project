@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,9 +25,6 @@ export interface InterviewSchedule {
   };
   company?: {
     name: string;
-  };
-  candidate?: {
-    candidates_name: string;
   };
 }
 
@@ -74,8 +72,7 @@ export function useInterviewSchedules() {
           created_at,
           updated_at,
           vacancy:vacancies(title, vacancy_title),
-          company:companies(name),
-          candidate:candidates(candidates_name)
+          company:companies(name)
         `)
         .order('interview_date', { ascending: true });
 
@@ -92,11 +89,24 @@ export function useInterviewSchedules() {
 
       console.log('Interview schedules fetched successfully:', data);
       
-      // Transform the data to match our interface, adding missing candidate_id as 0 for now
-      const transformedSchedules = (data || []).map(schedule => ({
-        ...schedule,
+      // Transform the data to match our interface
+      const transformedSchedules: InterviewSchedule[] = (data || []).map(schedule => ({
+        schedules_uuid: schedule.schedules_uuid,
+        vacancy_uuid: schedule.vacancy_uuid,
+        company_uuid: schedule.company_uuid,
         candidate_id: 0, // Default value since it's not in the current database structure
-        created_at: schedule.created_at || new Date().toISOString()
+        candidate_name: schedule.candidate_name,
+        interview_date: schedule.interview_date,
+        interview_time: schedule.interview_time,
+        interview_location: schedule.interview_location,
+        interview_type: schedule.interview_type,
+        interviewer_name: schedule.interviewer_name,
+        meeting_link: schedule.meeting_link,
+        status: schedule.status,
+        created_at: schedule.created_at || new Date().toISOString(),
+        updated_at: schedule.updated_at,
+        vacancy: schedule.vacancy,
+        company: schedule.company
       }));
       
       setSchedules(transformedSchedules);
