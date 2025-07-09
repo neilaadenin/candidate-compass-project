@@ -55,6 +55,8 @@ export function useInterviewSchedules() {
       setLoading(true);
       setError(null);
 
+      console.log('Fetching interview schedules...');
+
       const { data, error } = await supabase
         .from('interview_schedules')
         .select(`
@@ -128,6 +130,8 @@ export function useInterviewSchedules() {
       setLoading(true);
       setError(null);
 
+      console.log('Creating interview schedule:', scheduleData);
+
       const { data, error } = await supabase
         .from('interview_schedules')
         .insert([scheduleData])
@@ -171,6 +175,8 @@ export function useInterviewSchedules() {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('Updating interview schedule:', schedules_uuid, scheduleData);
 
       const { data, error } = await supabase
         .from('interview_schedules')
@@ -216,6 +222,8 @@ export function useInterviewSchedules() {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('Deleting interview schedule:', schedules_uuid);
 
       const { error } = await supabase
         .from('interview_schedules')

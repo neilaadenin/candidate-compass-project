@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useVacancies } from '@/hooks/useVacancies';
-import { useCandidates } from '@/hooks/useCandidates';
 import { CreateInterviewScheduleData, InterviewSchedule } from '@/hooks/useInterviewSchedules';
 
 interface InterviewScheduleFormProps {
@@ -21,7 +20,6 @@ interface InterviewScheduleFormProps {
 export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = false }: InterviewScheduleFormProps) {
   const { companies } = useCompanies();
   const { vacancies } = useVacancies();
-  const { candidates } = useCandidates();
 
   const [formData, setFormData] = useState<CreateInterviewScheduleData>({
     vacancy_uuid: schedule?.vacancy_uuid || '',
@@ -44,34 +42,28 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
     }));
   };
 
-  const handleCandidateChange = (candidateId: string) => {
-    const candidate = candidates.find(c => c.id === candidateId);
-    if (candidate) {
-      setFormData(prev => ({
-        ...prev,
-        candidate_id: parseInt(candidateId),
-        candidate_name: candidate.name
-      }));
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.vacancy_uuid || !formData.company_uuid || !formData.candidate_id || 
+    if (!formData.vacancy_uuid || !formData.company_uuid || 
         !formData.candidate_name || !formData.interview_date || !formData.interview_time) {
       return;
     }
 
-    const success = await onSubmit(formData);
+    // Set a default candidate_id since it's required but not used for selection anymore
+    const submitData = {
+      ...formData,
+      candidate_id: formData.candidate_id || 1
+    };
+
+    const success = await onSubmit(submitData);
     if (success) {
       onCancel();
     }
   };
 
   const isFormValid = formData.vacancy_uuid && formData.company_uuid && 
-                     formData.candidate_id && formData.candidate_name && 
-                     formData.interview_date && formData.interview_time;
+                     formData.candidate_name && formData.interview_date && formData.interview_time;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -120,36 +112,15 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="candidate">Candidate *</Label>
-              <Select
-                value={formData.candidate_id.toString()}
-                onValueChange={handleCandidateChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Candidate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {candidates.map((candidate) => (
-                    <SelectItem key={candidate.id} value={candidate.id.toString()}>
-                      {candidate.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="candidate_name">Candidate Name *</Label>
-              <Input
-                id="candidate_name"
-                value={formData.candidate_name}
-                onChange={(e) => handleInputChange('candidate_name', e.target.value)}
-                placeholder="Enter candidate name"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="candidate_name">Candidate Name *</Label>
+            <Input
+              id="candidate_name"
+              value={formData.candidate_name}
+              onChange={(e) => handleInputChange('candidate_name', e.target.value)}
+              placeholder="Enter candidate name"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
