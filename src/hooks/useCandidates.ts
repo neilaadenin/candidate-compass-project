@@ -46,7 +46,20 @@ export const useCandidates = () => {
       }
 
       console.log('Candidates fetched successfully:', data);
-      setCandidates(data || []);
+      
+      // Transform database fields to match interface
+      const transformedCandidates = (data || []).map(candidate => ({
+        id: candidate.id.toString(),
+        name: candidate.candidates_name,
+        profile_url: candidate.profile_url,
+        note_sent: candidate.note_sent,
+        connection_status: candidate.connection_status,
+        out_reach: candidate.created_at, // Using created_at as fallback for out_reach
+        vacancy_id: null, // Database doesn't have this field yet
+        created_at: candidate.created_at || new Date().toISOString(),
+      }));
+      
+      setCandidates(transformedCandidates);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');

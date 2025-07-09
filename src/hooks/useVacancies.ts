@@ -59,7 +59,24 @@ export const useVacancies = () => {
       }
 
       console.log('Vacancies fetched successfully:', data);
-      setVacancies(data || []);
+      
+      // Transform database fields to match interface
+      const transformedVacancies = (data || []).map(vacancy => ({
+        id: vacancy.id,
+        title: vacancy.title || vacancy.vacancy_title || 'Untitled Position',
+        company_id: vacancy.companies?.id || 0,
+        description: vacancy.description || vacancy.vacancy_description,
+        search_url: vacancy.search_url,
+        note_sent: vacancy.note_sent ? 'Note sent' : null,
+        created_at: vacancy.created_at || new Date().toISOString(),
+        companies: {
+          id: vacancy.companies?.id || 0,
+          name: vacancy.companies?.name || 'Unknown Company',
+          created_at: vacancy.companies?.created_at || vacancy.created_at || new Date().toISOString()
+        }
+      }));
+      
+      setVacancies(transformedVacancies);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');

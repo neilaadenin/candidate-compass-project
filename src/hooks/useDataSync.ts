@@ -15,11 +15,16 @@ export const useDataSync = () => {
       const { error } = await supabase
         .from('companies')
         .upsert({
-          id: company.id,
           name: company.company_name,
-          created_at: company.created_at
+          company_uuid: company.company_uuid,
+          company_description: company.company_description,
+          company_value: company.company_value,
+          company_logo_url: company.company_logo_url,
+          company_base_url: company.company_base_url,
+          created_at: company.created_at,
+          updated_at: company.updated_at
         }, {
-          onConflict: 'id'
+          onConflict: 'company_uuid'
         });
 
       if (error) {
@@ -36,15 +41,21 @@ export const useDataSync = () => {
       const { error } = await supabase
         .from('vacancies')
         .upsert({
-          id: vacancy.id,
+          vacancy_uuid: vacancy.uuid,
           title: vacancy.name,
-          company_id: vacancy.company_id,
           description: vacancy.description,
+          company_uuid: vacancy.company_uuid,
           search_url: vacancy.company_base_url,
-          note_sent: vacancy.outreach_message,
-          created_at: vacancy.created_at
+          note_sent: Boolean(vacancy.outreach_message),
+          salary_min: vacancy.minimum_salary,
+          salary_max: vacancy.maximum_salary,
+          vacancy_type: vacancy.work_type,
+          vacancy_location: vacancy.location_type,
+          vacancy_description: vacancy.description,
+          created_at: vacancy.created_at,
+          updated_at: vacancy.updated_at
         }, {
-          onConflict: 'id'
+          onConflict: 'vacancy_uuid'
         });
 
       if (error) {
@@ -61,16 +72,15 @@ export const useDataSync = () => {
       const { error } = await supabase
         .from('candidates')
         .upsert({
-          id: candidate.id.toString(),
-          name: candidate.name,
+          candidates_name: candidate.name,
           profile_url: candidate.resume_file_url,
           note_sent: `${candidate.job_title} - ${candidate.category.join(', ')}`,
           connection_status: candidate.status === 1 ? 'active' : 'inactive',
-          out_reach: candidate.created_at,
-          vacancy_id: vacancyId,
+          search_url: candidate.resume_file_url,
           created_at: candidate.created_at
         }, {
-          onConflict: 'id'
+          onConflict: 'id',
+          ignoreDuplicates: true
         });
 
       if (error) {
