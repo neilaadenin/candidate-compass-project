@@ -15,6 +15,7 @@ import CompanyPage from "./pages/admin/CompanyPage";
 import VacancyPage from "./pages/admin/VacancyPage";
 import CandidatePage from "./pages/admin/CandidatePage";
 import StatisticsPage from "./pages/admin/StatisticsPage";
+import InterviewSchedulePage from "./pages/admin/InterviewSchedulePage";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,13 @@ const App = () => (
               <ProtectedRoute>
                 <AdminLayout>
                   <CandidatePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/interview-schedules" element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <InterviewSchedulePage />
                 </AdminLayout>
               </ProtectedRoute>
             } />
