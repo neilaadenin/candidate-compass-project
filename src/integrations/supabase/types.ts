@@ -7,105 +7,228 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      candidates: {
+      applicants: {
         Row: {
-          connection_status: string | null
-          created_at: string
-          id: string
-          name: string
-          note_sent: string | null
-          out_reach: string | null
-          profile_url: string | null
-          search_url: string | null
-          vacancy_id: number | null
-        }
-        Insert: {
-          connection_status?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          note_sent?: string | null
-          out_reach?: string | null
-          profile_url?: string | null
-          search_url?: string | null
-          vacancy_id?: number | null
-        }
-        Update: {
-          connection_status?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          note_sent?: string | null
-          out_reach?: string | null
-          profile_url?: string | null
-          search_url?: string | null
-          vacancy_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "candidates_vacancy_id_fkey"
-            columns: ["vacancy_id"]
-            isOneToOne: false
-            referencedRelation: "vacancies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      companies: {
-        Row: {
+          "apply date": string | null
           created_at: string
           id: number
-          name: string
+          nama: string | null
+          vacancy_uuid: string | null
         }
         Insert: {
+          "apply date"?: string | null
           created_at?: string
           id?: number
-          name: string
+          nama?: string | null
+          vacancy_uuid?: string | null
         }
         Update: {
+          "apply date"?: string | null
           created_at?: string
           id?: number
-          name?: string
+          nama?: string | null
+          vacancy_uuid?: string | null
         }
         Relationships: []
       }
-      vacancies: {
+      candidates: {
         Row: {
-          company_id: number
-          created_at: string
-          description: string | null
+          candidates_name: string
+          connection_status: string | null
+          created_at: string | null
           id: number
           note_sent: string | null
+          profile_url: string | null
           search_url: string | null
-          title: string
         }
         Insert: {
-          company_id: number
-          created_at?: string
-          description?: string | null
+          candidates_name: string
+          connection_status?: string | null
+          created_at?: string | null
           id?: number
           note_sent?: string | null
+          profile_url?: string | null
           search_url?: string | null
-          title: string
         }
         Update: {
-          company_id?: number
-          created_at?: string
-          description?: string | null
+          candidates_name?: string
+          connection_status?: string | null
+          created_at?: string | null
           id?: number
           note_sent?: string | null
+          profile_url?: string | null
           search_url?: string | null
-          title?: string
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          company_base_url: string | null
+          company_description: string | null
+          company_logo_url: string | null
+          company_uuid: string
+          company_value: string | null
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_base_url?: string | null
+          company_description?: string | null
+          company_logo_url?: string | null
+          company_uuid?: string
+          company_value?: string | null
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_base_url?: string | null
+          company_description?: string | null
+          company_logo_url?: string | null
+          company_uuid?: string
+          company_value?: string | null
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      interview_schedules: {
+        Row: {
+          candidate_name: string
+          company_uuid: string
+          created_at: string | null
+          interview_date: string
+          interview_location: string | null
+          interview_time: string
+          interview_type: string | null
+          interviewer_name: string | null
+          meeting_link: string | null
+          schedules_uuid: string
+          status: string | null
+          updated_at: string | null
+          vacancy_uuid: string
+        }
+        Insert: {
+          candidate_name: string
+          company_uuid: string
+          created_at?: string | null
+          interview_date: string
+          interview_location?: string | null
+          interview_time: string
+          interview_type?: string | null
+          interviewer_name?: string | null
+          meeting_link?: string | null
+          schedules_uuid?: string
+          status?: string | null
+          updated_at?: string | null
+          vacancy_uuid: string
+        }
+        Update: {
+          candidate_name?: string
+          company_uuid?: string
+          created_at?: string | null
+          interview_date?: string
+          interview_location?: string | null
+          interview_time?: string
+          interview_type?: string | null
+          interviewer_name?: string | null
+          meeting_link?: string | null
+          schedules_uuid?: string
+          status?: string | null
+          updated_at?: string | null
+          vacancy_uuid?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vacancies_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "fk_company"
+            columns: ["company_uuid"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_uuid"]
+          },
+          {
+            foreignKeyName: "fk_vacancy"
+            columns: ["vacancy_uuid"]
+            isOneToOne: false
+            referencedRelation: "vacancies"
+            referencedColumns: ["vacancy_uuid"]
+          },
+        ]
+      }
+      vacancies: {
+        Row: {
+          company_uuid: string | null
+          created_at: string | null
+          description: string | null
+          id: number
+          note_sent: boolean | null
+          salary_max: number | null
+          salary_min: number | null
+          search_url: string | null
+          title: string | null
+          updated_at: string | null
+          vacancy_description: string | null
+          vacancy_location: string | null
+          vacancy_requirement: string | null
+          vacancy_title: string | null
+          vacancy_type: string | null
+          vacancy_uuid: string
+        }
+        Insert: {
+          company_uuid?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          note_sent?: boolean | null
+          salary_max?: number | null
+          salary_min?: number | null
+          search_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          vacancy_description?: string | null
+          vacancy_location?: string | null
+          vacancy_requirement?: string | null
+          vacancy_title?: string | null
+          vacancy_type?: string | null
+          vacancy_uuid?: string
+        }
+        Update: {
+          company_uuid?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          note_sent?: boolean | null
+          salary_max?: number | null
+          salary_min?: number | null
+          search_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          vacancy_description?: string | null
+          vacancy_location?: string | null
+          vacancy_requirement?: string | null
+          vacancy_title?: string | null
+          vacancy_type?: string | null
+          vacancy_uuid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_company_uuid"
+            columns: ["company_uuid"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["company_uuid"]
           },
         ]
       }
@@ -125,21 +248,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -157,14 +284,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -180,14 +309,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -203,14 +334,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -218,14 +351,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
