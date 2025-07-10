@@ -205,9 +205,34 @@ export const useVacancies = () => {
         description: "Vacancy created successfully",
       });
 
+      // Transform the created vacancy to match the interface
+      const transformedVacancy: Vacancy = {
+        id: data.id,
+        title: data.title || data.vacancy_title || 'Untitled Position',
+        vacancy_uuid: data.vacancy_uuid,
+        vacancy_title: data.vacancy_title || data.title || 'Untitled Position',
+        company_id: data.companies?.id || 0,
+        description: data.description || data.vacancy_description,
+        vacancy_description: data.vacancy_description,
+        search_url: data.search_url,
+        note_sent: data.note_sent ? 'Note sent' : null,
+        vacancy_location: data.vacancy_location,
+        vacancy_requirement: data.vacancy_requirement,
+        vacancy_type: data.vacancy_type,
+        salary_min: data.salary_min,
+        salary_max: data.salary_max,
+        created_at: data.created_at || new Date().toISOString(),
+        companies: {
+          id: data.companies?.id || 0,
+          name: data.companies?.name || 'Unknown Company',
+          company_uuid: data.companies?.company_uuid || '',
+          created_at: data.companies?.created_at || data.created_at || new Date().toISOString()
+        }
+      };
+
       // Refresh the vacancies list
       await fetchVacancies();
-      return data as Vacancy;
+      return transformedVacancy;
     } catch (err) {
       console.error('Unexpected error creating vacancy:', err);
       toast({
@@ -284,9 +309,34 @@ export const useVacancies = () => {
         description: "Vacancy updated successfully",
       });
 
+      // Transform the updated vacancy to match the interface
+      const transformedVacancy: Vacancy = {
+        id: data.id,
+        title: data.title || data.vacancy_title || 'Untitled Position',
+        vacancy_uuid: data.vacancy_uuid,
+        vacancy_title: data.vacancy_title || data.title || 'Untitled Position',
+        company_id: data.companies?.id || 0,
+        description: data.description || data.vacancy_description,
+        vacancy_description: data.vacancy_description,
+        search_url: data.search_url,
+        note_sent: data.note_sent ? 'Note sent' : null,
+        vacancy_location: data.vacancy_location,
+        vacancy_requirement: data.vacancy_requirement,
+        vacancy_type: data.vacancy_type,
+        salary_min: data.salary_min,
+        salary_max: data.salary_max,
+        created_at: data.created_at || new Date().toISOString(),
+        companies: {
+          id: data.companies?.id || 0,
+          name: data.companies?.name || 'Unknown Company',
+          company_uuid: data.companies?.company_uuid || '',
+          created_at: data.companies?.created_at || data.created_at || new Date().toISOString()
+        }
+      };
+
       // Refresh the vacancies list
       await fetchVacancies();
-      return data as Vacancy;
+      return transformedVacancy;
     } catch (err) {
       console.error('Unexpected error updating vacancy:', err);
       toast({

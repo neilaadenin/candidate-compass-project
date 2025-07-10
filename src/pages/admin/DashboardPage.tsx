@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useStatistics } from "@/hooks/useStatistics";
 import { useDataSync } from "@/hooks/useDataSync";
 import { getCandidates } from "@/api/statistics";
-import CandidateTable from "@/components/CandidateTable";
+import DashboardCandidateTable from "@/components/DashboardCandidateTable";
 import { useDashboardCandidates } from "@/hooks/useDashboardCandidates";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useVacancies } from "@/hooks/useVacancies";
@@ -227,7 +227,7 @@ export default function DashboardPage() {
               <p className="mt-2 text-gray-500">Loading candidates...</p>
             </div>
           ) : candidates.length > 0 ? (
-            <CandidateTable candidates={candidates} />
+            <DashboardCandidateTable candidates={candidates} />
           ) : companyFilter && vacancyFilter ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No candidates found for the selected filters.</p>
