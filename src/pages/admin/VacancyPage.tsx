@@ -49,7 +49,7 @@ interface Vacancy {
 export default function VacancyPage() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [vacancyFilter, setVacancyFilter] = useState("");
-  const [localCompanyFilter, setLocalCompanyFilter] = useState("");
+  const [localCompanyFilter, setLocalCompanyFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
@@ -71,24 +71,24 @@ export default function VacancyPage() {
     companyFilter,
     vacancyFilter,
     localCompanyFilter,
-    companies: companies.length,
-    jobVacancies: jobVacancies.length,
-    vacancies: vacancies.length,
-    supabaseCompanies: supabaseCompanies.length
+    companies: companies?.length || 0,
+    jobVacancies: jobVacancies?.length || 0,
+    vacancies: vacancies?.length || 0,
+    supabaseCompanies: supabaseCompanies?.length || 0
   });
 
   // Filter vacancies berdasarkan company yang dipilih
   const filteredVacancies = useMemo(() => {
-    if (!localCompanyFilter) return vacancies;
+    if (localCompanyFilter === "all") return vacancies || [];
     
-    return vacancies.filter(vacancy => 
+    return (vacancies || []).filter(vacancy => 
       vacancy.companies?.name?.toLowerCase().includes(localCompanyFilter.toLowerCase())
     );
   }, [vacancies, localCompanyFilter]);
 
   // Get unique companies from vacancies for local filtering
   const availableCompanies = useMemo(() => {
-    const companies = vacancies.map(v => v.companies?.name).filter(Boolean);
+    const companies = (vacancies || []).map(v => v.companies?.name).filter(Boolean);
     return [...new Set(companies)];
   }, [vacancies]);
 
@@ -249,7 +249,7 @@ export default function VacancyPage() {
                 <SelectValue placeholder="Select Company" />
               </SelectTrigger>
               <SelectContent>
-                {companies.map((company) => (
+                {(companies || []).map((company) => (
                   <SelectItem key={company.id} value={company.company_name}>
                     {company.company_name}
                   </SelectItem>
@@ -266,7 +266,7 @@ export default function VacancyPage() {
                 <SelectValue placeholder="Select Vacancy" />
               </SelectTrigger>
               <SelectContent>
-                {jobVacancies.map((vacancy) => (
+                {(jobVacancies || []).map((vacancy) => (
                   <SelectItem key={vacancy.id} value={vacancy.name}>
                     {vacancy.name}
                   </SelectItem>
@@ -297,7 +297,7 @@ export default function VacancyPage() {
                 <SelectValue placeholder="Filter by Company" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Companies</SelectItem>
+                <SelectItem value="all">All Companies</SelectItem>
                 {availableCompanies.map((companyName) => (
                   <SelectItem key={companyName} value={companyName}>
                     {companyName}
@@ -306,11 +306,11 @@ export default function VacancyPage() {
               </SelectContent>
             </Select>
             
-            {localCompanyFilter && (
+            {localCompanyFilter !== "all" && (
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setLocalCompanyFilter("")}
+                onClick={() => setLocalCompanyFilter("all")}
               >
                 Clear Filter
               </Button>
@@ -348,7 +348,7 @@ export default function VacancyPage() {
           </div>
           <CardDescription>
             Current vacancies stored in Supabase database
-            {localCompanyFilter && (
+            {localCompanyFilter !== "all" && (
               <span className="text-blue-600"> - Filtered by: {localCompanyFilter}</span>
             )}
           </CardDescription>
@@ -360,31 +360,31 @@ export default function VacancyPage() {
               <p className="mt-2 text-gray-500">Loading vacancies...</p>
             </div>
           ) : filteredVacancies.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {filteredVacancies.map((vacancy) => (
-                <Card key={vacancy.vacancy_uuid} className="p-4">
+                <Card key={vacancy.vacancy_uuid} className="p-3 max-w-sm">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg line-clamp-1">{vacancy.title}</h3>
+                          <h3 className="font-semibold text-sm line-clamp-1">{vacancy.title || vacancy.vacancy_title}</h3>
                           <Badge variant="outline" className="text-xs shrink-0">
-                            {vacancy.vacancy_uuid.slice(0, 8)}...
+                            {vacancy.vacancy_uuid.slice(0, 6)}...
                           </Badge>
                         </div>
                         
                         <div className="flex items-center gap-2 mb-2">
-                          <Building2 className="h-4 w-4 text-gray-500 shrink-0" />
-                          <span className="text-gray-700 font-medium text-sm line-clamp-1">{vacancy.companies.name}</span>
+                          <Building2 className="h-3 w-3 text-gray-500 shrink-0" />
+                          <span className="text-gray-700 font-medium text-xs line-clamp-1">{vacancy.companies.name}</span>
                         </div>
                       </div>
                     </div>
 
                     {vacancy.description && (
-                      <p className="text-gray-600 text-sm line-clamp-2">{vacancy.description}</p>
+                      <p className="text-gray-600 text-xs line-clamp-2">{vacancy.description}</p>
                     )}
                     
-                    <div className="space-y-2 text-xs text-gray-500">
+                    <div className="space-y-1 text-xs text-gray-500">
                       {vacancy.vacancy_location && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
@@ -422,7 +422,7 @@ export default function VacancyPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditForm(vacancy)}
-                          className="flex items-center gap-1 h-7 px-2"
+                          className="flex items-center gap-1 h-6 px-2"
                         >
                           <Edit className="h-3 w-3" />
                           <span className="text-xs">Edit</span>
@@ -431,7 +431,7 @@ export default function VacancyPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openDeleteDialog(vacancy)}
-                          className="flex items-center gap-1 text-red-600 hover:text-red-700 h-7 px-2"
+                          className="flex items-center gap-1 text-red-600 hover:text-red-700 h-6 px-2"
                         >
                           <Trash2 className="h-3 w-3" />
                           <span className="text-xs">Delete</span>
@@ -446,10 +446,10 @@ export default function VacancyPage() {
             <div className="text-center py-8 text-muted-foreground">
               <Briefcase className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-semibold mb-2">
-                {localCompanyFilter ? 'No vacancies found for selected company' : 'No vacancies found'}
+                {localCompanyFilter !== "all" ? 'No vacancies found for selected company' : 'No vacancies found'}
               </h3>
               <p>
-                {localCompanyFilter 
+                {localCompanyFilter !== "all" 
                   ? 'Try selecting a different company or clear the filter.' 
                   : 'Get started by creating your first vacancy or use the sync functionality above to import data.'
                 }
@@ -468,7 +468,7 @@ export default function VacancyPage() {
         }}
         onSubmit={selectedVacancy ? handleUpdateVacancy : handleCreateVacancy}
         vacancy={selectedVacancy}
-        companies={supabaseCompanies.map(company => ({
+        companies={(supabaseCompanies || []).map(company => ({
           id: company.id,
           name: company.name,
           company_uuid: company.company_uuid
@@ -482,7 +482,7 @@ export default function VacancyPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Vacancy</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{vacancyToDelete?.title}"? This action cannot be undone and will also delete any related records (interview schedules, etc.).
+              Are you sure you want to delete "{vacancyToDelete?.title || vacancyToDelete?.vacancy_title}"? This action cannot be undone and will also delete any related records (interview schedules, etc.).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

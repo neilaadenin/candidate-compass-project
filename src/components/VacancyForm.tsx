@@ -63,7 +63,7 @@ export function VacancyForm({
   onClose, 
   onSubmit, 
   vacancy, 
-  companies,
+  companies = [],
   isLoading = false 
 }: VacancyFormProps) {
   const [formData, setFormData] = useState({
@@ -77,6 +77,8 @@ export function VacancyForm({
     salary_max: "",
     search_url: "",
   });
+  
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   const isEditing = !!vacancy;
 
@@ -106,28 +108,46 @@ export function VacancyForm({
         search_url: "",
       });
     }
-  }, [vacancy]);
+    setErrors({});
+  }, [vacancy, isOpen]);
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = "Job title is required";
+    }
+    
+    if (!formData.company_uuid) {
+      newErrors.company_uuid = "Company is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title.trim() || !formData.company_uuid) {
+    if (!validateForm()) {
       return;
     }
 
-    await onSubmit({
-      title: formData.title.trim(),
-      description: formData.description.trim() || undefined,
-      company_uuid: formData.company_uuid,
-      vacancy_location: formData.vacancy_location.trim() || undefined,
-      vacancy_requirement: formData.vacancy_requirement.trim() || undefined,
-      vacancy_type: formData.vacancy_type.trim() || undefined,
-      salary_min: formData.salary_min ? parseInt(formData.salary_min) : undefined,
-      salary_max: formData.salary_max ? parseInt(formData.salary_max) : undefined,
-      search_url: formData.search_url.trim() || undefined,
-    });
-
-    onClose();
+    try {
+      await onSubmit({
+        title: formData.title.trim(),
+        description: formData.description.trim() || undefined,
+        company_uuid: formData.company_uuid,
+        vacancy_location: formData.vacancy_location.trim() || undefined,
+        vacancy_requirement: formData.vacancy_requirement.trim() || undefined,
+        vacancy_type: formData.vacancy_type.trim() || undefined,
+        salary_min: formData.salary_min ? parseInt(formData.salary_min) : undefined,
+        salary_max: formData.salary_max ? parseInt(formData.salary_max) : undefined,
+        search_url: formData.search_url.trim() || undefined,
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -135,6 +155,14 @@ export function VacancyForm({
       ...prev,
       [field]: value,
     }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }));
+    }
   };
 
   return (
@@ -161,14 +189,18 @@ export function VacancyForm({
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 placeholder="Enter job title"
-                required
+                className={errors.title ? "border-red-500" : ""}
               />
+              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="company_uuid">Company *</Label>
-              <Select value={formData.company_uuid} onValueChange={(value) => handleInputChange("company_uuid", value)}>
-                <SelectTrigger>
+              <Select 
+                value={formData.company_uuid} 
+                onValueChange={(value) => handleInputChange("company_uuid", value)}
+              >
+                <SelectTrigger className={errors.company_uuid ? "border-red-500" : ""}>
                   <SelectValue placeholder="Select company" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,6 +211,7 @@ export function VacancyForm({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.company_uuid && <p className="text-red-500 text-sm">{errors.company_uuid}</p>}
             </div>
           </div>
 
@@ -268,10 +301,10 @@ export function VacancyForm({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.title.trim() || !formData.company_uuid}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Saving..." : isEditing ? "Update Vacancy" : "Create Vacancy"}
             </Button>
           </DialogFooter>
