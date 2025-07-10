@@ -152,18 +152,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_company"
-            columns: ["company_uuid"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["company_uuid"]
-          },
-          {
             foreignKeyName: "fk_vacancy"
             columns: ["vacancy_uuid"]
             isOneToOne: false
             referencedRelation: "vacancies"
             referencedColumns: ["vacancy_uuid"]
+          },
+          {
+            foreignKeyName: "interview_schedules_company_uuid_fkey"
+            columns: ["company_uuid"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["company_uuid"]
           },
         ]
       }
@@ -224,7 +224,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_company_uuid"
+            foreignKeyName: "vacancies_company_uuid_fkey"
             columns: ["company_uuid"]
             isOneToOne: false
             referencedRelation: "companies"
