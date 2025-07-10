@@ -8,15 +8,28 @@ import { useStatistics } from "@/hooks/useStatistics";
 import { useDataSync } from "@/hooks/useDataSync";
 import { getCandidates } from "@/api/statistics";
 import CandidateTable from "@/components/CandidateTable";
+import { useDashboardCandidates } from "@/hooks/useDashboardCandidates";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useVacancies } from "@/hooks/useVacancies";
 
 export default function DashboardPage() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [vacancyFilter, setVacancyFilter] = useState("");
-  const [candidates, setCandidates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedCompanyUuid, setSelectedCompanyUuid] = useState<string>("");
+  const [selectedVacancyUuid, setSelectedVacancyUuid] = useState<string>("");
+
+  // Use the new dashboard candidates hook with proper filtering
+  const { candidates, loading: candidatesLoading, error: candidatesError } = useDashboardCandidates({
+    companyUuid: selectedCompanyUuid,
+    vacancyUuid: selectedVacancyUuid
+  });
+
+  // Use Supabase hooks for companies and vacancies
+  const { companies, loading: companiesLoading } = useCompanies();
+  const { vacancies, loading: vacanciesLoading } = useVacancies();
 
   const {
-    companies,
+    companies: apiCompanies,
     jobVacancies,
     getCompanyByName,
     fetchJobVacancies,
@@ -28,8 +41,10 @@ export default function DashboardPage() {
   console.log('Dashboard - Current state:', {
     companyFilter,
     vacancyFilter,
+    selectedCompanyUuid,
+    selectedVacancyUuid,
     companies: companies.length,
-    jobVacancies: jobVacancies.length,
+    vacancies: vacancies.length,
     candidates: candidates.length
   });
 
@@ -37,12 +52,15 @@ export default function DashboardPage() {
     console.log('Company filter changed to:', companyName);
     setCompanyFilter(companyName);
     setVacancyFilter("");
-    setCandidates([]);
+    setSelectedVacancyUuid("");
     
-    const company = getCompanyByName(companyName);
+    // Find the company UUID from Supabase companies
+    const company = companies.find(c => c.name === companyName);
     if (company) {
-      console.log('Fetching vacancies for company:', company.company_uuid);
-      await fetchJobVacancies(company.company_uuid);
+      console.log('Setting company UUID:', company.company_uuid);
+      setSelectedCompanyUuid(company.company_uuid);
+    } else {
+      setSelectedCompanyUuid("");
     }
   };
 
@@ -50,45 +68,13 @@ export default function DashboardPage() {
     console.log('Vacancy filter changed to:', vacancyName);
     setVacancyFilter(vacancyName);
     
-    const vacancy = jobVacancies.find(v => v.name === vacancyName);
+    // Find the vacancy UUID from Supabase vacancies
+    const vacancy = vacancies.find(v => v.title === vacancyName);
     if (vacancy) {
-      try {
-        setLoading(true);
-        console.log('Fetching candidates for vacancy:', vacancy.uuid);
-        const candidatesData = await getCandidates(vacancy.uuid);
-        
-        // Transform candidates to match the expected format for the table
-        const transformedCandidates = candidatesData.map(candidate => ({
-          id: candidate.id.toString(),
-          name: candidate.name,
-          profile_url: candidate.resume_file_url,
-          note_sent: `${candidate.job_title} - ${candidate.category.join(', ')}`,
-          connection_status: candidate.status === 1 ? 'active' : 'inactive',
-          out_reach: candidate.created_at,
-          vacancy_id: vacancy.id,
-          created_at: candidate.created_at,
-          vacancies: {
-            id: vacancy.id,
-            title: vacancy.name,
-            company_id: vacancy.company_id,
-            description: vacancy.description,
-            created_at: vacancy.created_at,
-            companies: {
-              id: vacancy.company_id,
-              name: companyFilter,
-              created_at: vacancy.created_at
-            }
-          }
-        }));
-        
-        console.log('Transformed candidates:', transformedCandidates);
-        setCandidates(transformedCandidates);
-      } catch (error) {
-        console.error('Error fetching candidates:', error);
-        setCandidates([]);
-      } finally {
-        setLoading(false);
-      }
+      console.log('Setting vacancy UUID:', vacancy.vacancy_uuid);
+      setSelectedVacancyUuid(vacancy.vacancy_uuid);
+    } else {
+      setSelectedVacancyUuid("");
     }
   };
 
@@ -112,6 +98,11 @@ export default function DashboardPage() {
     }
   };
 
+  // Filter vacancies based on selected company
+  const filteredVacancies = selectedCompanyUuid 
+    ? vacancies.filter(v => v.companies?.name === companyFilter)
+    : vacancies;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -134,8 +125,8 @@ export default function DashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.company_name}>
-                    {company.company_name}
+                  <SelectItem key={company.id} value={company.name}>
+                    {company.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -150,9 +141,9 @@ export default function DashboardPage() {
                 <SelectValue placeholder="Select Vacancy" />
               </SelectTrigger>
               <SelectContent>
-                {jobVacancies.map((vacancy) => (
-                  <SelectItem key={vacancy.id} value={vacancy.name}>
-                    {vacancy.name}
+                {filteredVacancies.map((vacancy) => (
+                  <SelectItem key={vacancy.id} value={vacancy.title}>
+                    {vacancy.title}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -226,11 +217,11 @@ export default function DashboardPage() {
             <CardTitle>Candidate Database</CardTitle>
           </div>
           <CardDescription>
-            Browse candidates with search and filter capabilities - showing real API data
+            Browse candidates with search and filter capabilities - showing real Supabase data
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {(loading || statisticsLoading) ? (
+          {(candidatesLoading || companiesLoading || vacanciesLoading) ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-500">Loading candidates...</p>
@@ -239,7 +230,11 @@ export default function DashboardPage() {
             <CandidateTable candidates={candidates} />
           ) : companyFilter && vacancyFilter ? (
             <div className="text-center py-8 text-muted-foreground">
-              No candidates found for the selected vacancy.
+              <p>No candidates found for the selected filters.</p>
+              <p className="text-sm mt-2">
+                Note: The filtering functionality requires the Supabase types to be regenerated 
+                to include the missing candidate_id field in the interview_schedules table.
+              </p>
             </div>
           ) : null}
         </CardContent>
