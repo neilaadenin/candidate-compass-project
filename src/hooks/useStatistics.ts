@@ -30,15 +30,64 @@ interface StatisticData {
 }
 
 interface ApiResponse<T> {
-  success: boolean;
+  statusCode: number;
+  message: string;
+  fulfilled: number;
   data: T[];
-  message?: string;
   pagination?: {
+    type: string;
     page: number;
-    limit: number;
-    total: number;
+    per_page: number;
+    total_rows: number;
     total_pages: number;
+    numbering_start: number;
+    sort: string;
   };
+}
+
+interface ApiCompany {
+  id: number;
+  company_uuid: string;
+  company_name: string;
+  company_description?: string;
+  company_value?: string;
+  company_logo_url?: string;
+  company_base_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ApiJobVacancy {
+  id: number;
+  uuid: string;
+  applicant_count?: number;
+  training_id?: number;
+  uuid_training?: string;
+  company_id: number;
+  company_uuid: string;
+  name: string;
+  category?: string;
+  company_name?: string;
+  company_image?: string;
+  company_city?: string;
+  company_base_url?: string;
+  company_value?: string;
+  description?: string;
+  enable_auto_assess?: number;
+  rubric_score?: string;
+  work_type?: string;
+  location_type?: string;
+  minimum_salary?: number;
+  maximum_salary?: number;
+  skills?: string[];
+  level?: string;
+  outreach_message?: string;
+  with_deadline?: boolean;
+  deadline_at?: string;
+  likert_scale_data?: string;
+  status?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const API_BASE_URL = 'https://bumame-sarana-ai-daffa-ai-service-652345969561.asia-southeast2.run.app';
@@ -60,11 +109,19 @@ export const useStatistics = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const result: ApiResponse<Company> = await response.json();
+      const result: ApiResponse<ApiCompany> = await response.json();
       
-      if (result.success && result.data) {
-        console.log('Companies fetched successfully:', result.data);
-        setCompanies(result.data);
+      if (result.statusCode === 200 && result.data) {
+        // Transform API company data to match our interface
+        const transformedCompanies: Company[] = result.data.map(company => ({
+          id: company.id,
+          name: company.company_name,
+          company_uuid: company.company_uuid,
+          description: company.company_description
+        }));
+        
+        console.log('Companies fetched successfully:', transformedCompanies);
+        setCompanies(transformedCompanies);
         setError(null);
       } else {
         throw new Error(result.message || 'Failed to fetch companies');
@@ -106,13 +163,27 @@ export const useStatistics = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const result: ApiResponse<JobVacancy> = await response.json();
+      const result: ApiResponse<ApiJobVacancy> = await response.json();
       
-      if (result.success && result.data) {
-        console.log('Job vacancies fetched successfully:', result.data);
-        setJobVacancies(result.data);
+      if (result.statusCode === 200 && result.data) {
+        // Transform API job vacancy data to match our interface
+        const transformedVacancies: JobVacancy[] = result.data.map(vacancy => ({
+          id: vacancy.id,
+          uuid: vacancy.uuid,
+          name: vacancy.name,
+          description: vacancy.description,
+          location: vacancy.company_city || vacancy.location_type,
+          requirements: vacancy.level, // Using level as requirements for now
+          type: vacancy.work_type,
+          salary_min: vacancy.minimum_salary,
+          salary_max: vacancy.maximum_salary,
+          company_uuid: vacancy.company_uuid
+        }));
+        
+        console.log('Job vacancies fetched successfully:', transformedVacancies);
+        setJobVacancies(transformedVacancies);
         setError(null);
-        return result.data;
+        return transformedVacancies;
       } else {
         throw new Error(result.message || 'Failed to fetch job vacancies');
       }

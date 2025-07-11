@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -47,8 +46,8 @@ interface Vacancy {
 }
 
 export default function VacancyPage() {
-  const [selectedCompany, setSelectedCompany] = useState("");
-  const [selectedVacancy, setSelectedVacancy] = useState("");
+  const [selectedCompanyUuid, setSelectedCompanyUuid] = useState("");
+  const [selectedVacancyUuid, setSelectedVacancyUuid] = useState("");
   const [localCompanyFilter, setLocalCompanyFilter] = useState("all");
   const [localVacancyFilter, setLocalVacancyFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -68,8 +67,8 @@ export default function VacancyPage() {
   const { syncAllData, syncJobVacancies, syncing } = useDataSync();
 
   console.log('VacancyPage - Current state:', {
-    selectedCompany,
-    selectedVacancy,
+    selectedCompanyUuid,
+    selectedVacancyUuid,
     localCompanyFilter,
     apiCompanies: apiCompanies?.length || 0,
     jobVacancies: jobVacancies?.length || 0,
@@ -108,28 +107,34 @@ export default function VacancyPage() {
       .filter(Boolean);
   }, [vacancies, localCompanyFilter]);
 
-  const handleCompanySelect = async (companyName: string) => {
-    console.log('Company selected:', companyName);
-    setSelectedCompany(companyName);
-    setSelectedVacancy(""); // Reset vacancy selection
+  // Get selected company object
+  const selectedCompany = useMemo(() => {
+    return apiCompanies.find(c => c.company_uuid === selectedCompanyUuid);
+  }, [apiCompanies, selectedCompanyUuid]);
+
+  // Get selected vacancy object
+  const selectedVacancy = useMemo(() => {
+    return jobVacancies.find(v => v.uuid === selectedVacancyUuid);
+  }, [jobVacancies, selectedVacancyUuid]);
+
+  const handleCompanySelect = async (companyUuid: string) => {
+    console.log('Company selected with UUID:', companyUuid);
+    setSelectedCompanyUuid(companyUuid);
+    setSelectedVacancyUuid(""); // Reset vacancy selection
     
-    // Find the company by name in API companies
-    const company = apiCompanies.find(c => c.name === companyName);
-    if (company) {
-      console.log('Fetching vacancies for company UUID:', company.company_uuid);
+    if (companyUuid) {
+      console.log('Fetching job vacancies for company UUID:', companyUuid);
       try {
-        await fetchJobVacancies(company.company_uuid);
+        await fetchJobVacancies(companyUuid);
       } catch (error) {
         console.error('Error fetching job vacancies:', error);
       }
-    } else {
-      console.error('Company not found in API companies:', companyName);
     }
   };
 
-  const handleVacancySelect = (vacancyName: string) => {
-    console.log('Vacancy selected:', vacancyName);
-    setSelectedVacancy(vacancyName);
+  const handleVacancySelect = (vacancyUuid: string) => {
+    console.log('Vacancy selected with UUID:', vacancyUuid);
+    setSelectedVacancyUuid(vacancyUuid);
   };
 
   const handleSyncSpecificVacancy = async () => {
@@ -138,24 +143,17 @@ export default function VacancyPage() {
       return;
     }
 
-    const company = apiCompanies.find(c => c.name === selectedCompany);
-    const vacancy = jobVacancies.find(v => v.name === selectedVacancy);
-    
-    if (company && vacancy) {
-      try {
-        console.log('Syncing specific vacancy:', { company: company.name, vacancy: vacancy.name });
-        const candidatesData = await getCandidates(vacancy.uuid);
-        await syncAllData([company], [vacancy], candidatesData, vacancy.id.toString());
-        refetch();
-        console.log('Sync completed successfully');
-      } catch (error) {
-        console.error('Error during specific vacancy sync:', error);
-      }
-    } else {
-      console.error('Company or vacancy not found for sync:', { 
-        companyFound: !!company, 
-        vacancyFound: !!vacancy 
+    try {
+      console.log('Syncing specific vacancy:', { 
+        company: selectedCompany.name, 
+        vacancy: selectedVacancy.name 
       });
+      const candidatesData = await getCandidates(selectedVacancy.uuid);
+      await syncAllData([selectedCompany], [selectedVacancy], candidatesData, selectedVacancy.id.toString());
+      refetch();
+      console.log('Sync completed successfully');
+    } catch (error) {
+      console.error('Error during specific vacancy sync:', error);
     }
   };
 
@@ -295,13 +293,13 @@ export default function VacancyPage() {
           <div className="flex items-center gap-4">
             <Filter className="h-5 w-5 text-gray-500" />
             
-            <Select value={selectedCompany} onValueChange={handleCompanySelect}>
+            <Select value={selectedCompanyUuid} onValueChange={handleCompanySelect}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Company" />
               </SelectTrigger>
               <SelectContent>
                 {apiCompanies.map((company) => (
-                  <SelectItem key={company.company_uuid} value={company.name}>
+                  <SelectItem key={company.company_uuid} value={company.company_uuid}>
                     {company.name}
                   </SelectItem>
                 ))}
@@ -309,16 +307,16 @@ export default function VacancyPage() {
             </Select>
             
             <Select 
-              value={selectedVacancy} 
+              value={selectedVacancyUuid} 
               onValueChange={handleVacancySelect}
-              disabled={!selectedCompany || jobVacancies.length === 0}
+              disabled={!selectedCompanyUuid || jobVacancies.length === 0}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Vacancy" />
               </SelectTrigger>
               <SelectContent>
                 {jobVacancies.map((vacancy) => (
-                  <SelectItem key={vacancy.uuid} value={vacancy.name}>
+                  <SelectItem key={vacancy.uuid} value={vacancy.uuid}>
                     {vacancy.name}
                   </SelectItem>
                 ))}
@@ -343,6 +341,19 @@ export default function VacancyPage() {
               </Button>
             </div>
           </div>
+
+          {/* Company Selection Info */}
+          {selectedCompany && (
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+              <strong>Selected Company:</strong> {selectedCompany.name}
+              {selectedVacancy && (
+                <>
+                  <br />
+                  <strong>Selected Vacancy:</strong> {selectedVacancy.name}
+                </>
+              )}
+            </div>
+          )}
 
           {/* API Vacancy Results */}
           {jobVacancies.length > 0 && (
