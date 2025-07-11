@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -87,80 +86,91 @@ export const useDataSync = () => {
 
   const syncJobVacancies = async (jobVacancies: JobVacancy[]) => {
     console.log('Syncing job vacancies to Supabase:', jobVacancies);
+    setSyncing(true);
     
-    for (const vacancy of jobVacancies) {
-      try {
-        // First, ensure the company exists
-        const { data: companyExists } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('company_uuid', vacancy.company_uuid)
-          .single();
+    try {
+      for (const vacancy of jobVacancies) {
+        try {
+          // First, ensure the company exists
+          const { data: companyExists } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('company_uuid', vacancy.company_uuid)
+            .single();
 
-        if (!companyExists) {
-          console.warn(`Company with UUID ${vacancy.company_uuid} not found. Skipping vacancy: ${vacancy.name}`);
-          continue;
-        }
-
-        const { data: existingVacancy } = await supabase
-          .from('vacancies')
-          .select('id')
-          .eq('vacancy_uuid', vacancy.uuid)
-          .single();
-
-        if (existingVacancy) {
-          // Update existing vacancy
-          const { error } = await supabase
-            .from('vacancies')
-            .update({
-              title: vacancy.name,
-              vacancy_title: vacancy.name,
-              description: vacancy.description,
-              vacancy_description: vacancy.description,
-              vacancy_location: vacancy.location,
-              vacancy_requirement: vacancy.requirements,
-              vacancy_type: vacancy.type,
-              salary_min: vacancy.salary_min,
-              salary_max: vacancy.salary_max,
-              company_uuid: vacancy.company_uuid,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('vacancy_uuid', vacancy.uuid);
-
-          if (error) {
-            console.error('Error updating vacancy:', error);
-            throw error;
+          if (!companyExists) {
+            console.warn(`Company with UUID ${vacancy.company_uuid} not found. Skipping vacancy: ${vacancy.name}`);
+            continue;
           }
-          console.log('Updated vacancy:', vacancy.name);
-        } else {
-          // Insert new vacancy
-          const { error } = await supabase
-            .from('vacancies')
-            .insert({
-              title: vacancy.name,
-              vacancy_title: vacancy.name,
-              vacancy_uuid: vacancy.uuid,
-              description: vacancy.description,
-              vacancy_description: vacancy.description,
-              vacancy_location: vacancy.location,
-              vacancy_requirement: vacancy.requirements,
-              vacancy_type: vacancy.type,
-              salary_min: vacancy.salary_min,
-              salary_max: vacancy.salary_max,
-              company_uuid: vacancy.company_uuid,
-            });
 
-          if (error) {
-            console.error('Error inserting vacancy:', error);
-            throw error;
+          const { data: existingVacancy } = await supabase
+            .from('vacancies')
+            .select('id')
+            .eq('vacancy_uuid', vacancy.uuid)
+            .single();
+
+          const vacancyData = {
+            title: vacancy.name,
+            vacancy_title: vacancy.name,
+            description: vacancy.description,
+            vacancy_description: vacancy.description,
+            vacancy_location: vacancy.location,
+            vacancy_requirement: vacancy.requirements,
+            vacancy_type: vacancy.type || vacancy.work_type,
+            salary_min: vacancy.salary_min,
+            salary_max: vacancy.salary_max,
+            company_uuid: vacancy.company_uuid,
+            updated_at: new Date().toISOString(),
+          };
+
+          if (existingVacancy) {
+            // Update existing vacancy
+            const { error } = await supabase
+              .from('vacancies')
+              .update(vacancyData)
+              .eq('vacancy_uuid', vacancy.uuid);
+
+            if (error) {
+              console.error('Error updating vacancy:', error);
+              throw error;
+            }
+            console.log('Updated vacancy:', vacancy.name);
+          } else {
+            // Insert new vacancy
+            const { error } = await supabase
+              .from('vacancies')
+              .insert({
+                ...vacancyData,
+                vacancy_uuid: vacancy.uuid,
+              });
+
+            if (error) {
+              console.error('Error inserting vacancy:', error);
+              throw error;
+            }
+            console.log('Inserted new vacancy:', vacancy.name);
           }
-          console.log('Inserted new vacancy:', vacancy.name);
+        } catch (error) {
+          console.error('Error syncing vacancy:', vacancy.name, error);
+          // Continue with other vacancies instead of throwing
+          console.log('Continuing with next vacancy...');
         }
-      } catch (error) {
-        console.error('Error syncing vacancy:', vacancy.name, error);
-        // Continue with other vacancies instead of throwing
-        console.log('Continuing with next vacancy...');
       }
+
+      toast({
+        title: "Vacancies Synced",
+        description: `${jobVacancies.length} job vacancies synced successfully`,
+      });
+    } catch (error) {
+      console.error('Error during vacancy sync:', error);
+      toast({
+        title: "Sync Error",
+        description: "There was an error syncing some vacancies. Check console for details.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -223,10 +233,6 @@ export const useDataSync = () => {
       if (jobVacancies.length > 0) {
         console.log('Syncing job vacancies...');
         await syncJobVacancies(jobVacancies);
-        toast({
-          title: "Vacancies Synced",
-          description: `${jobVacancies.length} job vacancies synced successfully`,
-        });
       }
 
       // Sync candidates

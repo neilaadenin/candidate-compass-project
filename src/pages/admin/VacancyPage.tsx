@@ -55,6 +55,7 @@ export default function VacancyPage() {
   const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
   const [vacancyToDelete, setVacancyToDelete] = useState<Vacancy | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingFromApi, setIsFetchingFromApi] = useState(false);
   
   const { vacancies, loading: vacanciesLoading, refetch, createVacancy, updateVacancy, deleteVacancy } = useVacancies();
   const { companies: supabaseCompanies } = useCompanies();
@@ -62,6 +63,7 @@ export default function VacancyPage() {
     companies: apiCompanies,
     jobVacancies,
     fetchJobVacancies,
+    fetchAllJobVacancies,
     loading: statisticsLoading
   } = useStatistics();
   const { syncAllData, syncJobVacancies, syncing } = useDataSync();
@@ -124,10 +126,13 @@ export default function VacancyPage() {
     
     if (companyUuid) {
       console.log('Fetching job vacancies for company UUID:', companyUuid);
+      setIsFetchingFromApi(true);
       try {
-        await fetchJobVacancies(companyUuid);
+        await fetchJobVacancies(companyUuid, { limit: 50 });
       } catch (error) {
         console.error('Error fetching job vacancies:', error);
+      } finally {
+        setIsFetchingFromApi(false);
       }
     }
   };
@@ -135,6 +140,18 @@ export default function VacancyPage() {
   const handleVacancySelect = (vacancyUuid: string) => {
     console.log('Vacancy selected with UUID:', vacancyUuid);
     setSelectedVacancyUuid(vacancyUuid);
+  };
+
+  const handleFetchAllVacanciesFromApi = async () => {
+    console.log('Fetching all vacancies from API...');
+    setIsFetchingFromApi(true);
+    try {
+      await fetchAllJobVacancies();
+    } catch (error) {
+      console.error('Error fetching all vacancies from API:', error);
+    } finally {
+      setIsFetchingFromApi(false);
+    }
   };
 
   const handleSyncSpecificVacancy = async () => {
@@ -148,8 +165,7 @@ export default function VacancyPage() {
         company: selectedCompany.name, 
         vacancy: selectedVacancy.name 
       });
-      const candidatesData = await getCandidates(selectedVacancy.uuid);
-      await syncAllData([selectedCompany], [selectedVacancy], candidatesData, selectedVacancy.id.toString());
+      await syncJobVacancies([selectedVacancy]);
       refetch();
       console.log('Sync completed successfully');
     } catch (error) {
@@ -272,10 +288,21 @@ export default function VacancyPage() {
           <h1 className="text-3xl font-bold text-gray-900">Vacancy Management</h1>
           <p className="text-gray-600 mt-1">Manage job vacancies and sync data from external sources</p>
         </div>
-        <Button onClick={openCreateForm} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Vacancy
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleFetchAllVacanciesFromApi}
+            disabled={isFetchingFromApi || statisticsLoading}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetchingFromApi ? 'animate-spin' : ''}`} />
+            {isFetchingFromApi ? 'Fetching...' : 'Fetch All from API'}
+          </Button>
+          <Button onClick={openCreateForm} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Vacancy
+          </Button>
+        </div>
       </div>
 
       {/* API Sync Section */}
@@ -283,17 +310,17 @@ export default function VacancyPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
-            API Sync
+            API Data Sync
           </CardTitle>
           <CardDescription>
-            Sync vacancy data from external API to your database
+            Fetch and sync vacancy data from external API to your database
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <Filter className="h-5 w-5 text-gray-500" />
             
-            <Select value={selectedCompanyUuid} onValueChange={handleCompanySelect}>
+            <Select value={selectedCompanyUuid} onValueChange={handleCompanySelect} disabled={isFetchingFromApi}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Company" />
               </SelectTrigger>
@@ -309,7 +336,7 @@ export default function VacancyPage() {
             <Select 
               value={selectedVacancyUuid} 
               onValueChange={handleVacancySelect}
-              disabled={!selectedCompanyUuid || jobVacancies.length === 0}
+              disabled={!selectedCompanyUuid || jobVacancies.length === 0 || isFetchingFromApi}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Vacancy" />
@@ -350,8 +377,22 @@ export default function VacancyPage() {
                 <>
                   <br />
                   <strong>Selected Vacancy:</strong> {selectedVacancy.name}
+                  {selectedVacancy.applicant_count !== undefined && (
+                    <>
+                      <br />
+                      <strong>Applicants:</strong> {selectedVacancy.applicant_count}
+                    </>
+                  )}
                 </>
               )}
+            </div>
+          )}
+
+          {/* Loading state for API fetch */}
+          {isFetchingFromApi && (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-500">Fetching data from API...</p>
             </div>
           )}
 
@@ -376,7 +417,21 @@ export default function VacancyPage() {
                         {vacancy.type && (
                           <Badge variant="outline" className="text-xs">{vacancy.type}</Badge>
                         )}
+                        {vacancy.category && (
+                          <Badge variant="outline" className="text-xs">{vacancy.category}</Badge>
+                        )}
                       </div>
+                      {vacancy.applicant_count !== undefined && (
+                        <div className="text-xs text-gray-500">
+                          <strong>Applicants:</strong> {vacancy.applicant_count}
+                        </div>
+                      )}
+                      {vacancy.skills && vacancy.skills.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          <strong>Skills:</strong> {vacancy.skills.slice(0, 3).join(', ')}
+                          {vacancy.skills.length > 3 && '...'}
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ))}

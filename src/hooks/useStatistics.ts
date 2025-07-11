@@ -20,6 +20,12 @@ interface JobVacancy {
   salary_min?: number;
   salary_max?: number;
   company_uuid: string;
+  category?: string;
+  level?: string;
+  skills?: string[];
+  work_type?: string;
+  location_type?: string;
+  applicant_count?: number;
 }
 
 interface StatisticData {
@@ -110,9 +116,9 @@ export const useStatistics = () => {
       }
       
       const result: ApiResponse<ApiCompany> = await response.json();
+      console.log('API response for companies:', result);
       
       if (result.statusCode === 200 && result.data) {
-        // Transform API company data to match our interface
         const transformedCompanies: Company[] = result.data.map(company => ({
           id: company.id,
           name: company.company_name,
@@ -120,20 +126,23 @@ export const useStatistics = () => {
           description: company.company_description
         }));
         
-        console.log('Companies fetched successfully:', transformedCompanies);
+        console.log('Companies transformed:', transformedCompanies);
         setCompanies(transformedCompanies);
         setError(null);
+        return transformedCompanies;
       } else {
         throw new Error(result.message || 'Failed to fetch companies');
       }
     } catch (err) {
       console.error('Error fetching companies:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch companies');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch companies';
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to fetch companies from API",
         variant: "destructive",
       });
+      return [];
     }
   };
 
@@ -164,23 +173,29 @@ export const useStatistics = () => {
       }
       
       const result: ApiResponse<ApiJobVacancy> = await response.json();
+      console.log('API response for job vacancies:', result);
       
       if (result.statusCode === 200 && result.data) {
-        // Transform API job vacancy data to match our interface
         const transformedVacancies: JobVacancy[] = result.data.map(vacancy => ({
           id: vacancy.id,
           uuid: vacancy.uuid,
           name: vacancy.name,
           description: vacancy.description,
           location: vacancy.company_city || vacancy.location_type,
-          requirements: vacancy.level, // Using level as requirements for now
+          requirements: vacancy.level,
           type: vacancy.work_type,
           salary_min: vacancy.minimum_salary,
           salary_max: vacancy.maximum_salary,
-          company_uuid: vacancy.company_uuid
+          company_uuid: vacancy.company_uuid,
+          category: vacancy.category,
+          level: vacancy.level,
+          skills: vacancy.skills || [],
+          work_type: vacancy.work_type,
+          location_type: vacancy.location_type,
+          applicant_count: vacancy.applicant_count
         }));
         
-        console.log('Job vacancies fetched successfully:', transformedVacancies);
+        console.log('Job vacancies transformed:', transformedVacancies);
         setJobVacancies(transformedVacancies);
         setError(null);
         return transformedVacancies;
@@ -189,7 +204,8 @@ export const useStatistics = () => {
       }
     } catch (err) {
       console.error('Error fetching job vacancies:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch job vacancies');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch job vacancies';
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to fetch job vacancies from API",
@@ -199,23 +215,73 @@ export const useStatistics = () => {
     }
   };
 
+  const fetchAllJobVacancies = async () => {
+    try {
+      console.log('Fetching all job vacancies for all companies...');
+      setLoading(true);
+      
+      const companiesData = await fetchCompanies();
+      if (companiesData.length === 0) {
+        console.log('No companies found, skipping vacancy fetch');
+        return [];
+      }
+
+      const allVacancies: JobVacancy[] = [];
+      
+      for (const company of companiesData) {
+        try {
+          console.log(`Fetching vacancies for company: ${company.name} (${company.company_uuid})`);
+          const vacancies = await fetchJobVacancies(company.company_uuid, { limit: 50 });
+          allVacancies.push(...vacancies);
+          
+          // Add a small delay to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Error fetching vacancies for company ${company.name}:`, error);
+          // Continue with other companies even if one fails
+        }
+      }
+      
+      console.log('All job vacancies fetched:', allVacancies.length);
+      setJobVacancies(allVacancies);
+      return allVacancies;
+    } catch (err) {
+      console.error('Error fetching all job vacancies:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch all job vacancies';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: "Failed to fetch all job vacancies",
+        variant: "destructive",
+      });
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchStatisticsForVacancy = async (vacancyUuid: string, companyName: string, vacancyName: string) => {
     try {
       console.log('Fetching statistics for vacancy:', vacancyUuid);
       
-      // Mock statistics data since the API endpoint structure is not clear
+      // Find the vacancy to get actual applicant count
+      const vacancy = jobVacancies.find(v => v.uuid === vacancyUuid);
+      const applicantCount = vacancy?.applicant_count || 0;
+      
       const mockStats: StatisticData[] = [{
         company: companyName,
         vacancy: vacancyName,
-        outreach: Math.floor(Math.random() * 100) + 50, // Random between 50-150
-        applicants: Math.floor(Math.random() * 30) + 10  // Random between 10-40
+        outreach: Math.max(applicantCount * 3, 50), // Assume 3x outreach vs applicants
+        applicants: applicantCount
       }];
       
       setStatistics(mockStats);
       console.log('Statistics set:', mockStats);
+      return mockStats;
     } catch (err) {
       console.error('Error fetching statistics:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
+      return [];
     }
   };
 
@@ -262,6 +328,7 @@ export const useStatistics = () => {
     error,
     fetchCompanies,
     fetchJobVacancies,
+    fetchAllJobVacancies,
     fetchStatisticsForVacancy,
     getTotalStats,
     getCompanyByName,
