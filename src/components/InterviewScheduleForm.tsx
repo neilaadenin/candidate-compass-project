@@ -34,11 +34,36 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
     status: schedule?.status || 'scheduled',
   });
 
+  // Filter vacancies based on selected company
+  const filteredVacancies = formData.company_uuid 
+    ? vacancies.filter(v => v.companies?.company_uuid === formData.company_uuid)
+    : vacancies;
+
+  console.log('InterviewScheduleForm - Debug:', {
+    selectedCompanyUuid: formData.company_uuid,
+    totalVacancies: vacancies.length,
+    filteredVacancies: filteredVacancies.length,
+    companies: companies.map(c => ({ name: c.name, uuid: c.company_uuid })),
+    vacancies: vacancies.map(v => ({ title: v.title, companyUuid: v.companies?.company_uuid }))
+  });
+
   const handleInputChange = (field: keyof CreateInterviewScheduleData, value: any) => {
+    console.log('InterviewScheduleForm - handleInputChange:', { field, value });
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // If company is changed, reset vacancy selection
+    if (field === 'company_uuid') {
+      console.log('InterviewScheduleForm - Company changed, resetting vacancy');
+      setFormData(prev => ({
+        ...prev,
+        [field]: value,
+        vacancy_uuid: '' // Reset vacancy when company changes
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,12 +115,13 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
               <Select
                 value={formData.vacancy_uuid}
                 onValueChange={(value) => handleInputChange('vacancy_uuid', value)}
+                disabled={!formData.company_uuid}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Vacancy" />
+                  <SelectValue placeholder={formData.company_uuid ? "Select Vacancy" : "Select Company First"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {vacancies.map((vacancy) => (
+                  {filteredVacancies.map((vacancy) => (
                     <SelectItem key={vacancy.vacancy_uuid} value={vacancy.vacancy_uuid}>
                       {vacancy.title || vacancy.vacancy_title || `Vacancy ${vacancy.id}`}
                     </SelectItem>

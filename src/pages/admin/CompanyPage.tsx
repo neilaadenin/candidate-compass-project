@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building, Plus, Edit, Trash2, ExternalLink } from "lucide-react";
+import { Building, Plus, Edit, Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyForm } from "@/components/CompanyForm";
@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useDataSync } from '@/hooks/useDataSync';
 
 interface Company {
   id: number;
@@ -44,6 +45,8 @@ export default function CompanyPage() {
     updateCompany, 
     deleteCompany
   } = useCompanies();
+
+  const { syncing, syncCompaniesToSupabase } = useDataSync();
 
   const handleCreateCompany = async (data: {
     name: string;
@@ -97,6 +100,11 @@ export default function CompanyPage() {
     }
   };
 
+  const handleSyncCompanies = async () => {
+    if (companies.length === 0) return;
+    await syncCompaniesToSupabase(companies);
+  };
+
   const openCreateForm = () => {
     setSelectedCompany(null);
     setIsFormOpen(true);
@@ -130,6 +138,14 @@ export default function CompanyPage() {
           <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
           <p className="text-gray-600 mt-1">Manage companies with full CRUD operations</p>
         </div>
+        <Button 
+          onClick={handleSyncCompanies} 
+          className="flex items-center gap-2" 
+          disabled={syncing || companies.length === 0}
+        >
+          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing...' : 'Sync Companies'}
+        </Button>
         <Button onClick={openCreateForm} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Company

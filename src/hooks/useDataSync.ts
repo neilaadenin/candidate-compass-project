@@ -136,6 +136,7 @@ export const useDataSync = () => {
 
   return {
     syncAllData,
-    syncing
+    syncing,
+    syncCompaniesToSupabase
   };
 };

@@ -50,6 +50,7 @@ export default function VacancyPage() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [vacancyFilter, setVacancyFilter] = useState("");
   const [localCompanyFilter, setLocalCompanyFilter] = useState("all");
+  const [localVacancyFilter, setLocalVacancyFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
@@ -79,18 +80,34 @@ export default function VacancyPage() {
 
   // Filter vacancies berdasarkan company yang dipilih
   const filteredVacancies = useMemo(() => {
-    if (localCompanyFilter === "all") return vacancies || [];
-    
-    return (vacancies || []).filter(vacancy => 
-      vacancy.companies?.name?.toLowerCase().includes(localCompanyFilter.toLowerCase())
-    );
-  }, [vacancies, localCompanyFilter]);
+    let result = vacancies || [];
+    if (localCompanyFilter !== "all") {
+      result = result.filter(vacancy => 
+        vacancy.companies?.name?.toLowerCase().includes(localCompanyFilter.toLowerCase())
+      );
+    }
+    if (localVacancyFilter) {
+      result = result.filter(vacancy => 
+        (vacancy.title || vacancy.vacancy_title)?.toLowerCase().includes(localVacancyFilter.toLowerCase())
+      );
+    }
+    return result;
+  }, [vacancies, localCompanyFilter, localVacancyFilter]);
 
   // Get unique companies from vacancies for local filtering
   const availableCompanies = useMemo(() => {
     const companies = (vacancies || []).map(v => v.companies?.name).filter(Boolean);
     return [...new Set(companies)];
   }, [vacancies]);
+
+  // Compute availableVacancies for the selected company
+  const availableVacancies = useMemo(() => {
+    if (localCompanyFilter === "all") return [];
+    return (vacancies || [])
+      .filter(v => v.companies?.name === localCompanyFilter)
+      .map(v => v.title || v.vacancy_title)
+      .filter(Boolean);
+  }, [vacancies, localCompanyFilter]);
 
   const handleCompanyFilterChange = async (companyName: string) => {
     console.log('Company filter changed to:', companyName);
@@ -112,6 +129,10 @@ export default function VacancyPage() {
   const handleLocalCompanyFilterChange = (companyName: string) => {
     console.log('Local company filter changed to:', companyName);
     setLocalCompanyFilter(companyName);
+  };
+
+  const handleLocalVacancyFilterChange = (vacancyTitle: string) => {
+    setLocalVacancyFilter(vacancyTitle);
   };
 
   const handleSync = async () => {
@@ -244,39 +265,10 @@ export default function VacancyPage() {
           <div className="flex items-center gap-4 mb-4">
             <Filter className="h-5 w-5 text-gray-500" />
             <span className="font-medium text-gray-700">Sync Filters:</span>
-            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Company" />
-              </SelectTrigger>
-              <SelectContent>
-                {(companies || []).map((company) => (
-                  <SelectItem key={company.id} value={company.company_name}>
-                    {company.company_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select 
-              value={vacancyFilter} 
-              onValueChange={handleVacancyFilterChange}
-              disabled={!companyFilter}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select Vacancy" />
-              </SelectTrigger>
-              <SelectContent>
-                {(jobVacancies || []).map((vacancy) => (
-                  <SelectItem key={vacancy.id} value={vacancy.name}>
-                    {vacancy.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
+            {/* Removed company and vacancy select dropdowns */}
             <Button 
               onClick={handleSync}
-              disabled={!companyFilter || !vacancyFilter || syncing}
+              disabled={syncing}
               className="ml-auto"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -306,11 +298,29 @@ export default function VacancyPage() {
               </SelectContent>
             </Select>
             
-            {localCompanyFilter !== "all" && (
+            {/* Vacancy filter, only enabled if a company is selected */}
+            <Select 
+              value={localVacancyFilter} 
+              onValueChange={handleLocalVacancyFilterChange}
+              disabled={localCompanyFilter === "all" || availableVacancies.length === 0}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by Vacancy" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVacancies.map((vacancyTitle) => (
+                  <SelectItem key={vacancyTitle} value={vacancyTitle}>
+                    {vacancyTitle}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {(localCompanyFilter !== "all" || localVacancyFilter) && (
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setLocalCompanyFilter("all")}
+                onClick={() => { setLocalCompanyFilter("all"); setLocalVacancyFilter(""); }}
               >
                 Clear Filter
               </Button>
@@ -318,23 +328,6 @@ export default function VacancyPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Show message if no company/vacancy selected for sync */}
-      {(!companyFilter || !vacancyFilter) && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Briefcase className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                Select Company and Vacancy to Sync
-              </h3>
-              <p className="text-blue-700">
-                Choose both a company and vacancy from the filters above to sync external data to Supabase.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Vacancy Database Section */}
       <Card className="bg-white shadow-sm">
