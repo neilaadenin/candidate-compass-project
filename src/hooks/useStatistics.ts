@@ -1,129 +1,156 @@
 
-
 import { useState, useEffect } from 'react';
-import { getCompanies, getJobVacancies, getCandidates, transformCandidatesToStatistics, Company, JobVacancy, StatisticData } from '@/api/statistics';
 import { useToast } from '@/hooks/use-toast';
+
+interface Company {
+  id: number;
+  name: string;
+  company_uuid: string;
+  description?: string;
+}
+
+interface JobVacancy {
+  id: number;
+  uuid: string;
+  name: string;
+  description?: string;
+  location?: string;
+  requirements?: string;
+  type?: string;
+  salary_min?: number;
+  salary_max?: number;
+  company_uuid: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T[];
+  message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
+const API_BASE_URL = 'https://bumame-sarana-ai-daffa-ai-service-652345969561.asia-southeast2.run.app';
 
 export const useStatistics = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [jobVacancies, setJobVacancies] = useState<JobVacancy[]>([]);
-  const [statistics, setStatistics] = useState<StatisticData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchCompanies = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      console.log('Fetching companies from API...');
+      const response = await fetch(`${API_BASE_URL}/public/companies?limit=100`);
       
-      console.log('Fetching companies...');
-      const companiesData = await getCompanies();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      console.log('Companies fetched successfully:', companiesData);
-      setCompanies(companiesData);
+      const result: ApiResponse<Company> = await response.json();
+      
+      if (result.success && result.data) {
+        console.log('Companies fetched successfully:', result.data);
+        setCompanies(result.data);
+        setError(null);
+      } else {
+        throw new Error(result.message || 'Failed to fetch companies');
+      }
     } catch (err) {
       console.error('Error fetching companies:', err);
-      setError('Failed to fetch companies');
+      setError(err instanceof Error ? err.message : 'Failed to fetch companies');
       toast({
         title: "Error",
-        description: "Failed to fetch companies data",
+        description: "Failed to fetch companies from API",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchJobVacancies = async (companyUuid: string) => {
+  const fetchJobVacancies = async (companyUuid: string, params?: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+    search?: string;
+    category?: string;
+  }) => {
     try {
-      setLoading(true);
-      console.log('Fetching job vacancies for company:', companyUuid);
-      const vacanciesData = await getJobVacancies(companyUuid);
+      console.log('Fetching job vacancies from API for company:', companyUuid);
       
-      console.log('Job vacancies fetched successfully:', vacanciesData);
-      setJobVacancies(vacanciesData);
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.sort) queryParams.append('sort', params.sort);
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.category) queryParams.append('category', params.category);
+      
+      const url = `${API_BASE_URL}/public/companies/${companyUuid}/job-vacancies${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      console.log('Fetching from URL:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result: ApiResponse<JobVacancy> = await response.json();
+      
+      if (result.success && result.data) {
+        console.log('Job vacancies fetched successfully:', result.data);
+        setJobVacancies(result.data);
+        setError(null);
+        return result.data;
+      } else {
+        throw new Error(result.message || 'Failed to fetch job vacancies');
+      }
     } catch (err) {
       console.error('Error fetching job vacancies:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch job vacancies');
       toast({
         title: "Error",
-        description: "Failed to fetch job vacancies",
+        description: "Failed to fetch job vacancies from API",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return [];
     }
   };
 
-  const fetchStatisticsForVacancy = async (jobVacancyUuid: string, companyName: string, position: string) => {
-    try {
-      setLoading(true);
-      console.log('Fetching candidates for job vacancy:', jobVacancyUuid);
-      const candidatesData = await getCandidates(jobVacancyUuid);
-      
-      console.log('Candidates fetched successfully:', candidatesData);
-      const statisticData = transformCandidatesToStatistics(candidatesData, companyName, position);
-      setStatistics([statisticData]);
-    } catch (err) {
-      console.error('Error fetching candidates:', err);
-      toast({
-        title: "Error",
-        description: "Failed to fetch candidates data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const getCompanyByName = (name: string): Company | undefined => {
+    return companies.find(company => 
+      company.name.toLowerCase().includes(name.toLowerCase())
+    );
+  };
+
+  const getCompanyByUuid = (uuid: string): Company | undefined => {
+    return companies.find(company => company.company_uuid === uuid);
   };
 
   useEffect(() => {
-    fetchCompanies();
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await fetchCompanies();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
-  const getCompanyByName = (companyName: string): Company | undefined => {
-    return companies.find(company => company.company_name === companyName);
-  };
-  
-  const getVacanciesForCompany = (companyName: string) => {
-    return jobVacancies.map(vacancy => vacancy.name);
-  };
-
-  const getFilteredData = (companyFilter: string, vacancyFilter: string) => {
-    if (!companyFilter || !vacancyFilter) {
-      return [];
-    }
-    return statistics.filter(item => {
-      const matchesCompany = item.company === companyFilter;
-      const matchesVacancy = item.vacancy === vacancyFilter;
-      return matchesCompany && matchesVacancy;
-    });
-  };
-
-  const getTotalStats = (data: StatisticData[]) => {
-    const totalOutreach = data.reduce((sum, item) => sum + item.outreach, 0);
-    const totalApplicants = data.reduce((sum, item) => sum + item.applicants, 0);
-    const conversionRate = totalOutreach > 0 ? ((totalApplicants / totalOutreach) * 100).toFixed(1) : "0";
-    
-    return {
-      totalOutreach,
-      totalApplicants,
-      conversionRate: `${conversionRate}%`
-    };
-  };
-
   return {
-    statistics,
-    loading,
-    error,
     companies,
     jobVacancies,
-    getCompanyByName,
-    getVacanciesForCompany,
-    getFilteredData,
-    getTotalStats,
+    loading,
+    error,
+    fetchCompanies,
     fetchJobVacancies,
-    fetchStatisticsForVacancy,
-    refetch: fetchCompanies,
+    getCompanyByName,
+    getCompanyByUuid,
   };
 };
-

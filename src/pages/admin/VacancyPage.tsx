@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,7 @@ export default function VacancyPage() {
     fetchJobVacancies,
     loading: statisticsLoading
   } = useStatistics();
-  const { syncAllData, syncing } = useDataSync();
+  const { syncAllData, syncJobVacancies, syncing } = useDataSync();
 
   console.log('VacancyPage - Current state:', {
     companyFilter,
@@ -146,10 +145,21 @@ export default function VacancyPage() {
     if (company && vacancy) {
       try {
         const candidatesData = await getCandidates(vacancy.uuid);
-        await syncAllData([company], [vacancy], candidatesData, vacancy.id);
+        await syncAllData([company], [vacancy], candidatesData, vacancy.id.toString());
         refetch();
       } catch (error) {
         console.error('Error during sync:', error);
+      }
+    }
+  };
+
+  const handleSyncVacancies = async () => {
+    if (jobVacancies.length > 0) {
+      try {
+        await syncJobVacancies(jobVacancies);
+        refetch();
+      } catch (error) {
+        console.error('Error syncing vacancies:', error);
       }
     }
   };
@@ -259,22 +269,87 @@ export default function VacancyPage() {
         </Button>
       </div>
 
-      {/* Filters and Sync Button */}
+      {/* API Sync Filters */}
       <Card className="bg-white shadow-sm">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4 mb-4">
             <Filter className="h-5 w-5 text-gray-500" />
-            <span className="font-medium text-gray-700">Sync Filters:</span>
-            {/* Removed company and vacancy select dropdowns */}
-            <Button 
-              onClick={handleSync}
-              disabled={syncing}
-              className="ml-auto"
+            <span className="font-medium text-gray-700">API Sync Filters:</span>
+            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select Company" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.company_uuid} value={company.name}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select 
+              value={vacancyFilter} 
+              onValueChange={handleVacancyFilterChange}
+              disabled={!companyFilter || jobVacancies.length === 0}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync to Supabase'}
-            </Button>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select Vacancy" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobVacancies.map((vacancy) => (
+                  <SelectItem key={vacancy.uuid} value={vacancy.name}>
+                    {vacancy.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex gap-2 ml-auto">
+              <Button 
+                onClick={handleSyncVacancies}
+                disabled={syncing || jobVacancies.length === 0}
+                variant="secondary"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Vacancies Only'}
+              </Button>
+              <Button 
+                onClick={handleSync}
+                disabled={syncing || !companyFilter || !vacancyFilter}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync All Data'}
+              </Button>
+            </div>
           </div>
+
+          {/* API Vacancy Results */}
+          {jobVacancies.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-medium text-gray-700 mb-2">API Vacancies ({jobVacancies.length})</h4>
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {jobVacancies.map((vacancy) => (
+                  <Card key={vacancy.uuid} className="p-3">
+                    <div className="space-y-2">
+                      <h5 className="font-semibold text-sm">{vacancy.name}</h5>
+                      {vacancy.description && (
+                        <p className="text-xs text-gray-600 line-clamp-2">{vacancy.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {vacancy.location && (
+                          <Badge variant="outline" className="text-xs">{vacancy.location}</Badge>
+                        )}
+                        {vacancy.type && (
+                          <Badge variant="outline" className="text-xs">{vacancy.type}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
