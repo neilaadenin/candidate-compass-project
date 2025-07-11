@@ -83,7 +83,8 @@ export default function StatisticsPage() {
         updated_at: new Date().toISOString()
       }));
 
-      await syncAllData([company], [vacancy], mockCandidates, vacancy.id);
+      // Convert vacancy.id to string to match expected parameter type
+      await syncAllData([company], [vacancy], mockCandidates, vacancy.id.toString());
     }
   };
 
@@ -112,8 +113,8 @@ export default function StatisticsPage() {
               </SelectTrigger>
               <SelectContent>
                 {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.company_name}>
-                    {company.company_name}
+                  <SelectItem key={company.id} value={company.name}>
+                    {company.name}
                   </SelectItem>
                 ))}
               </SelectContent>

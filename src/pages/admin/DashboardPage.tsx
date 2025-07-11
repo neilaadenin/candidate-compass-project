@@ -91,7 +91,8 @@ export default function DashboardPage() {
         // Get the real candidates data from the API
         const candidatesData = await getCandidates(vacancy.uuid);
         
-        await syncAllData([company], [vacancy], candidatesData, vacancy.id);
+        // Convert vacancy.id to string to match expected parameter type
+        await syncAllData([company], [vacancy], candidatesData, vacancy.id.toString());
       } catch (error) {
         console.error('Error during sync:', error);
       }
