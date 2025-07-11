@@ -2,10 +2,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building, Plus, Edit, Trash2, ExternalLink, RefreshCw } from "lucide-react";
+import { Building, Plus, Edit, Trash2, ExternalLink, RefreshCw, Download, Search } from "lucide-react";
 import { useState } from "react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyForm } from "@/components/CompanyForm";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDataSync } from '@/hooks/useDataSync';
 
 interface Company {
   id: number;
@@ -36,17 +36,18 @@ export default function CompanyPage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { 
     companies, 
     loading, 
     error, 
+    syncing,
     createCompany, 
     updateCompany, 
-    deleteCompany
+    deleteCompany,
+    fetchAndSyncCompanies
   } = useCompanies();
-
-  const { syncing, syncCompaniesToSupabase } = useDataSync();
 
   const handleCreateCompany = async (data: {
     name: string;
@@ -100,9 +101,17 @@ export default function CompanyPage() {
     }
   };
 
-  const handleSyncCompanies = async () => {
-    if (companies.length === 0) return;
-    await syncCompaniesToSupabase(companies);
+  const handleSyncFromAPI = async () => {
+    try {
+      await fetchAndSyncCompanies({
+        limit: 50, // Fetch more companies
+        sort: 'id asc',
+        search: searchTerm || undefined
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('Sync failed:', error);
+    }
   };
 
   const openCreateForm = () => {
@@ -130,27 +139,60 @@ export default function CompanyPage() {
     });
   };
 
+  const filteredCompanies = companies.filter(company =>
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.company_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.company_value?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
-          <p className="text-gray-600 mt-1">Manage companies with full CRUD operations</p>
+          <p className="text-gray-600 mt-1">Manage companies with full CRUD operations and API sync</p>
         </div>
-        <Button 
-          onClick={handleSyncCompanies} 
-          className="flex items-center gap-2" 
-          disabled={syncing || companies.length === 0}
-        >
-          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync Companies'}
-        </Button>
-        <Button onClick={openCreateForm} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Company
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSyncFromAPI} 
+            variant="outline"
+            className="flex items-center gap-2" 
+            disabled={syncing}
+          >
+            <Download className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing from API...' : 'Sync from API'}
+          </Button>
+          <Button onClick={openCreateForm} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Company
+          </Button>
+        </div>
       </div>
+
+      {/* Search and Filter */}
+      <Card className="bg-white shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search companies by name, description, or value..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setSearchTerm('')}
+              disabled={!searchTerm}
+            >
+              Clear
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
 
       {/* Error Display */}
       {error && (
@@ -172,10 +214,15 @@ export default function CompanyPage() {
           <div className="flex items-center gap-2">
             <Building className="h-5 w-5" />
             <CardTitle>Companies</CardTitle>
-            <Badge variant="secondary">{companies.length} companies</Badge>
+            <Badge variant="secondary">{filteredCompanies.length} companies</Badge>
+            {searchTerm && (
+              <Badge variant="outline">
+                Filtered from {companies.length} total
+              </Badge>
+            )}
           </div>
           <CardDescription>
-            Manage all companies in the system
+            Manage all companies in the system. Sync data from external API or manage manually.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -184,13 +231,23 @@ export default function CompanyPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-500">Loading companies...</p>
             </div>
-          ) : companies.length > 0 ? (
+          ) : filteredCompanies.length > 0 ? (
             <div className="grid gap-4">
-              {companies.map((company) => (
+              {filteredCompanies.map((company) => (
                 <Card key={company.company_uuid} className="p-6">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
+                        {company.company_logo_url && (
+                          <img 
+                            src={company.company_logo_url} 
+                            alt={`${company.name} logo`}
+                            className="w-8 h-8 rounded object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
                         <h3 className="font-semibold text-lg">{company.name}</h3>
                         <Badge variant="outline" className="text-xs">
                           {company.company_uuid.slice(0, 8)}...
@@ -198,13 +255,14 @@ export default function CompanyPage() {
                       </div>
                       
                       {company.company_description && (
-                        <p className="text-gray-600 mb-3">{company.company_description}</p>
+                        <p className="text-gray-600 mb-3 line-clamp-2">{company.company_description}</p>
                       )}
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
                         {company.company_value && (
                           <div>
-                            <span className="font-medium">Value:</span> {company.company_value}
+                            <span className="font-medium">Value:</span> 
+                            <span className="line-clamp-1">{company.company_value}</span>
                           </div>
                         )}
                         {company.company_base_url && (
@@ -256,8 +314,27 @@ export default function CompanyPage() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Building className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-semibold mb-2">No companies found</h3>
-              <p>Get started by creating your first company.</p>
+              <h3 className="text-lg font-semibold mb-2">
+                {searchTerm ? 'No companies found' : 'No companies found'}
+              </h3>
+              <p>
+                {searchTerm 
+                  ? 'Try adjusting your search terms or clear the search to see all companies.'
+                  : 'Get started by syncing companies from the API or creating your first company manually.'
+                }
+              </p>
+              {!searchTerm && (
+                <div className="flex gap-2 justify-center mt-4">
+                  <Button onClick={handleSyncFromAPI} disabled={syncing}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Sync from API
+                  </Button>
+                  <Button variant="outline" onClick={openCreateForm}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Manually
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
