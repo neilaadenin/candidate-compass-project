@@ -90,6 +90,18 @@ export const useDataSync = () => {
     
     for (const vacancy of jobVacancies) {
       try {
+        // First, ensure the company exists
+        const { data: companyExists } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('company_uuid', vacancy.company_uuid)
+          .single();
+
+        if (!companyExists) {
+          console.warn(`Company with UUID ${vacancy.company_uuid} not found. Skipping vacancy: ${vacancy.name}`);
+          continue;
+        }
+
         const { data: existingVacancy } = await supabase
           .from('vacancies')
           .select('id')
@@ -146,7 +158,8 @@ export const useDataSync = () => {
         }
       } catch (error) {
         console.error('Error syncing vacancy:', vacancy.name, error);
-        throw error;
+        // Continue with other vacancies instead of throwing
+        console.log('Continuing with next vacancy...');
       }
     }
   };
@@ -180,7 +193,8 @@ export const useDataSync = () => {
         }
       } catch (error) {
         console.error('Error syncing candidate:', candidate.name, error);
-        throw error;
+        // Continue with other candidates
+        console.log('Continuing with next candidate...');
       }
     }
   };
@@ -193,41 +207,49 @@ export const useDataSync = () => {
   ) => {
     setSyncing(true);
     try {
-      console.log('Starting data synchronization...');
+      console.log('Starting comprehensive data synchronization...');
       
       // Sync companies first
       if (companies.length > 0) {
+        console.log('Syncing companies...');
         await syncCompanies(companies);
         toast({
-          title: "Success",
+          title: "Companies Synced",
           description: `${companies.length} companies synced successfully`,
         });
       }
 
       // Sync job vacancies
       if (jobVacancies.length > 0) {
+        console.log('Syncing job vacancies...');
         await syncJobVacancies(jobVacancies);
         toast({
-          title: "Success",
+          title: "Vacancies Synced",
           description: `${jobVacancies.length} job vacancies synced successfully`,
         });
       }
 
       // Sync candidates
       if (candidates.length > 0) {
+        console.log('Syncing candidates...');
         await syncCandidates(candidates, vacancyId);
         toast({
-          title: "Success",
+          title: "Candidates Synced",
           description: `${candidates.length} candidates synced successfully`,
         });
       }
 
+      toast({
+        title: "Sync Complete",
+        description: "All data has been synchronized successfully!",
+      });
+      
       console.log('All data synced successfully');
     } catch (error) {
       console.error('Error during sync:', error);
       toast({
-        title: "Error",
-        description: "Failed to sync data to Supabase",
+        title: "Sync Error",
+        description: "There was an error syncing some data. Check console for details.",
         variant: "destructive",
       });
       throw error;

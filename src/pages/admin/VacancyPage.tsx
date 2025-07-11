@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -46,32 +47,31 @@ interface Vacancy {
 }
 
 export default function VacancyPage() {
-  const [companyFilter, setCompanyFilter] = useState("");
-  const [vacancyFilter, setVacancyFilter] = useState("");
+  const [selectedCompany, setSelectedCompany] = useState("");
+  const [selectedVacancy, setSelectedVacancy] = useState("");
   const [localCompanyFilter, setLocalCompanyFilter] = useState("all");
   const [localVacancyFilter, setLocalVacancyFilter] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
+  const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null);
   const [vacancyToDelete, setVacancyToDelete] = useState<Vacancy | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { vacancies, loading: vacanciesLoading, refetch, createVacancy, updateVacancy, deleteVacancy } = useVacancies();
   const { companies: supabaseCompanies } = useCompanies();
   const {
-    companies,
+    companies: apiCompanies,
     jobVacancies,
-    getCompanyByName,
     fetchJobVacancies,
     loading: statisticsLoading
   } = useStatistics();
   const { syncAllData, syncJobVacancies, syncing } = useDataSync();
 
   console.log('VacancyPage - Current state:', {
-    companyFilter,
-    vacancyFilter,
+    selectedCompany,
+    selectedVacancy,
     localCompanyFilter,
-    companies: companies?.length || 0,
+    apiCompanies: apiCompanies?.length || 0,
     jobVacancies: jobVacancies?.length || 0,
     vacancies: vacancies?.length || 0,
     supabaseCompanies: supabaseCompanies?.length || 0
@@ -108,59 +108,70 @@ export default function VacancyPage() {
       .filter(Boolean);
   }, [vacancies, localCompanyFilter]);
 
-  const handleCompanyFilterChange = async (companyName: string) => {
-    console.log('Company filter changed to:', companyName);
-    setCompanyFilter(companyName);
-    setVacancyFilter("");
+  const handleCompanySelect = async (companyName: string) => {
+    console.log('Company selected:', companyName);
+    setSelectedCompany(companyName);
+    setSelectedVacancy(""); // Reset vacancy selection
     
-    const company = getCompanyByName(companyName);
+    // Find the company by name in API companies
+    const company = apiCompanies.find(c => c.name === companyName);
     if (company) {
-      console.log('Fetching vacancies for company:', company.company_uuid);
-      await fetchJobVacancies(company.company_uuid);
+      console.log('Fetching vacancies for company UUID:', company.company_uuid);
+      try {
+        await fetchJobVacancies(company.company_uuid);
+      } catch (error) {
+        console.error('Error fetching job vacancies:', error);
+      }
+    } else {
+      console.error('Company not found in API companies:', companyName);
     }
   };
 
-  const handleVacancyFilterChange = (vacancyName: string) => {
-    console.log('Vacancy filter changed to:', vacancyName);
-    setVacancyFilter(vacancyName);
+  const handleVacancySelect = (vacancyName: string) => {
+    console.log('Vacancy selected:', vacancyName);
+    setSelectedVacancy(vacancyName);
   };
 
-  const handleLocalCompanyFilterChange = (companyName: string) => {
-    console.log('Local company filter changed to:', companyName);
-    setLocalCompanyFilter(companyName);
-  };
-
-  const handleLocalVacancyFilterChange = (vacancyTitle: string) => {
-    setLocalVacancyFilter(vacancyTitle);
-  };
-
-  const handleSync = async () => {
-    if (!companyFilter || !vacancyFilter) {
+  const handleSyncSpecificVacancy = async () => {
+    if (!selectedCompany || !selectedVacancy) {
+      console.error('Company or vacancy not selected');
       return;
     }
 
-    const company = getCompanyByName(companyFilter);
-    const vacancy = jobVacancies.find(v => v.name === vacancyFilter);
+    const company = apiCompanies.find(c => c.name === selectedCompany);
+    const vacancy = jobVacancies.find(v => v.name === selectedVacancy);
     
     if (company && vacancy) {
       try {
+        console.log('Syncing specific vacancy:', { company: company.name, vacancy: vacancy.name });
         const candidatesData = await getCandidates(vacancy.uuid);
         await syncAllData([company], [vacancy], candidatesData, vacancy.id.toString());
         refetch();
+        console.log('Sync completed successfully');
       } catch (error) {
-        console.error('Error during sync:', error);
+        console.error('Error during specific vacancy sync:', error);
       }
+    } else {
+      console.error('Company or vacancy not found for sync:', { 
+        companyFound: !!company, 
+        vacancyFound: !!vacancy 
+      });
     }
   };
 
-  const handleSyncVacancies = async () => {
-    if (jobVacancies.length > 0) {
-      try {
-        await syncJobVacancies(jobVacancies);
-        refetch();
-      } catch (error) {
-        console.error('Error syncing vacancies:', error);
-      }
+  const handleSyncAllVacancies = async () => {
+    if (jobVacancies.length === 0) {
+      console.error('No job vacancies to sync');
+      return;
+    }
+
+    try {
+      console.log('Syncing all vacancies:', jobVacancies.length);
+      await syncJobVacancies(jobVacancies);
+      refetch();
+      console.log('All vacancies synced successfully');
+    } catch (error) {
+      console.error('Error syncing all vacancies:', error);
     }
   };
 
@@ -180,7 +191,7 @@ export default function VacancyPage() {
       console.log('Creating vacancy with data:', data);
       await createVacancy(data);
       setIsFormOpen(false);
-      setSelectedVacancy(null);
+      setEditingVacancy(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -197,13 +208,13 @@ export default function VacancyPage() {
     salary_max?: number;
     search_url?: string;
   }) => {
-    if (!selectedVacancy) return;
+    if (!editingVacancy) return;
     
     setIsSubmitting(true);
     try {
-      await updateVacancy(selectedVacancy.vacancy_uuid, data);
+      await updateVacancy(editingVacancy.vacancy_uuid, data);
       setIsFormOpen(false);
-      setSelectedVacancy(null);
+      setEditingVacancy(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -225,12 +236,12 @@ export default function VacancyPage() {
   };
 
   const openCreateForm = () => {
-    setSelectedVacancy(null);
+    setEditingVacancy(null);
     setIsFormOpen(true);
   };
 
   const openEditForm = (vacancy: Vacancy) => {
-    setSelectedVacancy(vacancy);
+    setEditingVacancy(vacancy);
     setIsFormOpen(true);
   };
 
@@ -269,18 +280,27 @@ export default function VacancyPage() {
         </Button>
       </div>
 
-      {/* API Sync Filters */}
+      {/* API Sync Section */}
       <Card className="bg-white shadow-sm">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4 mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5" />
+            API Sync
+          </CardTitle>
+          <CardDescription>
+            Sync vacancy data from external API to your database
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
             <Filter className="h-5 w-5 text-gray-500" />
-            <span className="font-medium text-gray-700">API Sync Filters:</span>
-            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
+            
+            <Select value={selectedCompany} onValueChange={handleCompanySelect}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Company" />
               </SelectTrigger>
               <SelectContent>
-                {companies.map((company) => (
+                {apiCompanies.map((company) => (
                   <SelectItem key={company.company_uuid} value={company.name}>
                     {company.name}
                   </SelectItem>
@@ -289,9 +309,9 @@ export default function VacancyPage() {
             </Select>
             
             <Select 
-              value={vacancyFilter} 
-              onValueChange={handleVacancyFilterChange}
-              disabled={!companyFilter || jobVacancies.length === 0}
+              value={selectedVacancy} 
+              onValueChange={handleVacancySelect}
+              disabled={!selectedCompany || jobVacancies.length === 0}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select Vacancy" />
@@ -307,19 +327,19 @@ export default function VacancyPage() {
 
             <div className="flex gap-2 ml-auto">
               <Button 
-                onClick={handleSyncVacancies}
+                onClick={handleSyncAllVacancies}
                 disabled={syncing || jobVacancies.length === 0}
                 variant="secondary"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Syncing...' : 'Sync Vacancies Only'}
+                {syncing ? 'Syncing...' : `Sync All (${jobVacancies.length})`}
               </Button>
               <Button 
-                onClick={handleSync}
-                disabled={syncing || !companyFilter || !vacancyFilter}
+                onClick={handleSyncSpecificVacancy}
+                disabled={syncing || !selectedCompany || !selectedVacancy}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Syncing...' : 'Sync All Data'}
+                {syncing ? 'Syncing...' : 'Sync Selected'}
               </Button>
             </div>
           </div>
@@ -327,7 +347,9 @@ export default function VacancyPage() {
           {/* API Vacancy Results */}
           {jobVacancies.length > 0 && (
             <div className="mt-4">
-              <h4 className="font-medium text-gray-700 mb-2">API Vacancies ({jobVacancies.length})</h4>
+              <h4 className="font-medium text-gray-700 mb-2">
+                Available Vacancies from API ({jobVacancies.length})
+              </h4>
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {jobVacancies.map((vacancy) => (
                   <Card key={vacancy.uuid} className="p-3">
@@ -353,13 +375,13 @@ export default function VacancyPage() {
         </CardContent>
       </Card>
 
-      {/* Local Filters for Database Vacancies */}
+      {/* Local Database Filters */}
       <Card className="bg-white shadow-sm">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <Filter className="h-5 w-5 text-gray-500" />
             <span className="font-medium text-gray-700">Filter Database:</span>
-            <Select value={localCompanyFilter} onValueChange={handleLocalCompanyFilterChange}>
+            <Select value={localCompanyFilter} onValueChange={setLocalCompanyFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by Company" />
               </SelectTrigger>
@@ -373,10 +395,9 @@ export default function VacancyPage() {
               </SelectContent>
             </Select>
             
-            {/* Vacancy filter, only enabled if a company is selected */}
             <Select 
               value={localVacancyFilter} 
-              onValueChange={handleLocalVacancyFilterChange}
+              onValueChange={setLocalVacancyFilter}
               disabled={localCompanyFilter === "all" || availableVacancies.length === 0}
             >
               <SelectTrigger className="w-48">
@@ -395,7 +416,10 @@ export default function VacancyPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => { setLocalCompanyFilter("all"); setLocalVacancyFilter(""); }}
+                onClick={() => { 
+                  setLocalCompanyFilter("all"); 
+                  setLocalVacancyFilter(""); 
+                }}
               >
                 Clear Filter
               </Button>
@@ -532,10 +556,10 @@ export default function VacancyPage() {
         isOpen={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
-          setSelectedVacancy(null);
+          setEditingVacancy(null);
         }}
-        onSubmit={selectedVacancy ? handleUpdateVacancy : handleCreateVacancy}
-        vacancy={selectedVacancy}
+        onSubmit={editingVacancy ? handleUpdateVacancy : handleCreateVacancy}
+        vacancy={editingVacancy}
         companies={(supabaseCompanies || []).map(company => ({
           id: company.id,
           name: company.name,
