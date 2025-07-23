@@ -116,7 +116,7 @@ export const useDataSync = () => {
             vacancy_description: vacancy.description,
             vacancy_location: vacancy.location,
             vacancy_requirement: vacancy.requirements,
-            vacancy_type: vacancy.type || vacancy.work_type,
+            vacancy_type: vacancy.type,
             salary_min: vacancy.salary_min,
             salary_max: vacancy.salary_max,
             company_uuid: vacancy.company_uuid,
