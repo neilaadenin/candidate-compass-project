@@ -12,6 +12,7 @@ interface DashboardCandidate {
   profile_url: string | null;
   note_sent: string | null;
   connection_status: string | null;
+  search_template: string | null;
   out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
@@ -96,6 +97,11 @@ export default function DashboardCandidateTable({ candidates }: DashboardCandida
                         {candidate.connection_status && (
                           <Badge className={`text-xs ${getConnectionStatusColor(candidate.connection_status)}`}>
                             {candidate.connection_status}
+                          </Badge>
+                        )}
+                        {candidate.search_template && (
+                          <Badge variant="secondary" className="text-xs">
+                            {candidate.search_template}
                           </Badge>
                         )}
                       </div>

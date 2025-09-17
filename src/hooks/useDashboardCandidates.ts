@@ -8,6 +8,7 @@ interface DashboardCandidate {
   profile_url: string | null;
   note_sent: string | null;
   connection_status: string | null;
+  search_template: string | null;
   out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
@@ -64,12 +65,13 @@ export const useDashboardCandidates = (filters: FilterOptions) => {
       console.log('Candidates fetched successfully:', data);
       
       // Transform database fields to match interface
-      const transformedCandidates = (data || []).map(candidate => ({
-        id: candidate.id.toString(),
+      const transformedCandidates: DashboardCandidate[] = (data || []).map((candidate: any) => ({
+        id: candidate.id?.toString?.() ?? String(candidate.id),
         name: candidate.candidates_name,
         profile_url: candidate.profile_url,
         note_sent: candidate.note_sent,
         connection_status: candidate.connection_status,
+        search_template: candidate.search_template ?? null,
         out_reach: candidate.created_at,
         vacancy_id: null, // No direct relationship in current schema
         created_at: candidate.created_at || new Date().toISOString(),
@@ -78,15 +80,33 @@ export const useDashboardCandidates = (filters: FilterOptions) => {
       
       // Apply filtering logic based on requirements
       let filteredCandidates = transformedCandidates;
-      
-      if (filters.companyUuid || filters.vacancyUuid) {
-        // For now, since there's no direct relationship, we'll show all candidates
-        // In a real implementation, you would need to:
-        // 1. Regenerate the Supabase types to include the missing candidate_id field
-        // 2. Use the interview_schedules table to join candidates with vacancies
-        console.log('Filters applied but no direct relationship available in current schema');
-        console.log('To fix this, regenerate the Supabase types file to include the missing candidate_id field');
+
+      // Filter by company using candidates.search_template that stores company info
+      if (filters.companyUuid) {
+        try {
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('company_uuid', filters.companyUuid)
+            .single();
+
+          if (companyError) {
+            console.warn('Unable to resolve company name for filtering:', companyError.message);
+          }
+
+          const companyName = companyData?.name?.toLowerCase();
+          if (companyName) {
+            filteredCandidates = filteredCandidates.filter(c =>
+              (c.search_template ?? '').toLowerCase().includes(companyName)
+            );
+          }
+        } catch (e) {
+          console.warn('Company name lookup failed:', e);
+        }
       }
+
+      // Note: Vacancy-based filtering requires a relation that is not
+      // present in the current schema. Once available, apply it here.
       
       setCandidates(filteredCandidates);
     } catch (err) {
