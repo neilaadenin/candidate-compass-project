@@ -43,16 +43,37 @@ export const useDashboardCandidates = (filters: FilterOptions) => {
 
       console.log('Fetching candidates with filters:', filters);
 
-      // For now, fetch all candidates since the types are out of sync
-      // In a production environment, you would regenerate the types file
-      const { data, error } = await supabase
-        .from('candidates')
-        .select('*')
+      // If no filters are applied, return empty array
+      if (!filters.companyUuid && !filters.vacancyUuid) {
+        setCandidates([]);
+        return;
+      }
+
+      // Fetch candidates through interview_schedules to get the relationship with companies and vacancies
+      let query = supabase
+        .from('interview_schedules')
+        .select(`
+          candidate_name,
+          vacancy_uuid,
+          company_uuid,
+          created_at
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching candidates:', error);
-        setError(error.message);
+      // Apply filters if provided
+      if (filters.companyUuid) {
+        query = query.eq('company_uuid', filters.companyUuid);
+      }
+      
+      if (filters.vacancyUuid) {
+        query = query.eq('vacancy_uuid', filters.vacancyUuid);
+      }
+
+      const { data: scheduleData, error: scheduleError } = await query;
+
+      if (scheduleError) {
+        console.error('Error fetching interview schedules:', scheduleError);
+        setError(scheduleError.message);
         toast({
           title: "Error",
           description: "Failed to fetch candidates from database",
@@ -61,34 +82,27 @@ export const useDashboardCandidates = (filters: FilterOptions) => {
         return;
       }
 
-      console.log('Candidates fetched successfully:', data);
+      console.log('Interview schedules fetched successfully:', scheduleData);
       
-      // Transform database fields to match interface
-      const transformedCandidates = (data || []).map(candidate => ({
-        id: candidate.id.toString(),
-        name: candidate.candidates_name,
-        profile_url: candidate.profile_url,
-        note_sent: candidate.note_sent,
-        connection_status: candidate.connection_status,
-        out_reach: candidate.created_at,
-        vacancy_id: null, // No direct relationship in current schema
-        created_at: candidate.created_at || new Date().toISOString(),
-        vacancies: undefined // No direct relationship in current schema
+      // Transform schedule data to match DashboardCandidate interface
+      const transformedCandidates = (scheduleData || []).map((schedule, index) => ({
+        id: `schedule-${index}`,
+        name: schedule.candidate_name,
+        profile_url: null,
+        note_sent: null,
+        connection_status: 'scheduled',
+        out_reach: schedule.created_at,
+        vacancy_id: null,
+        created_at: schedule.created_at || new Date().toISOString(),
+        vacancies: undefined
       }));
       
-      // Apply filtering logic based on requirements
-      let filteredCandidates = transformedCandidates;
+      // Remove duplicates based on candidate name
+      const uniqueCandidates = transformedCandidates.filter((candidate, index, self) => 
+        index === self.findIndex(c => c.name === candidate.name)
+      );
       
-      if (filters.companyUuid || filters.vacancyUuid) {
-        // For now, since there's no direct relationship, we'll show all candidates
-        // In a real implementation, you would need to:
-        // 1. Regenerate the Supabase types to include the missing candidate_id field
-        // 2. Use the interview_schedules table to join candidates with vacancies
-        console.log('Filters applied but no direct relationship available in current schema');
-        console.log('To fix this, regenerate the Supabase types file to include the missing candidate_id field');
-      }
-      
-      setCandidates(filteredCandidates);
+      setCandidates(uniqueCandidates);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');
