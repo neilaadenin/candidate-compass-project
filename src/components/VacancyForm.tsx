@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { vacancySchema } from "@/lib/validations";
+import { z } from "zod";
 
 interface Company {
   id: number;
@@ -112,18 +114,29 @@ export function VacancyForm({
   }, [vacancy, isOpen]);
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    setErrors({});
     
-    if (!formData.title.trim()) {
-      newErrors.title = "Job title is required";
+    try {
+      const formToValidate = {
+        ...formData,
+        salary_min: formData.salary_min ? parseInt(formData.salary_min) : undefined,
+        salary_max: formData.salary_max ? parseInt(formData.salary_max) : undefined,
+      };
+      
+      vacancySchema.parse(formToValidate);
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      }
+      return false;
     }
-    
-    if (!formData.company_uuid) {
-      newErrors.company_uuid = "Company is required";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

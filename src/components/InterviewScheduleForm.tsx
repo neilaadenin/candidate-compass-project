@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useVacancies } from '@/hooks/useVacancies';
 import { CreateInterviewScheduleData, InterviewSchedule } from '@/hooks/useInterviewSchedules';
+import { interviewScheduleSchema } from '@/lib/validations';
+import { z } from 'zod';
 
 interface InterviewScheduleFormProps {
   schedule?: InterviewSchedule;
@@ -20,6 +22,8 @@ interface InterviewScheduleFormProps {
 export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = false }: InterviewScheduleFormProps) {
   const { companies } = useCompanies();
   const { vacancies } = useVacancies();
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<CreateInterviewScheduleData>({
     vacancy_uuid: schedule?.vacancy_uuid || '',
@@ -54,6 +58,15 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
       ...prev,
       [field]: value
     }));
+    
+    // Clear error when user types
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
 
     // If company is changed, reset vacancy selection
     if (field === 'company_uuid') {
@@ -68,15 +81,25 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
-    if (!formData.vacancy_uuid || !formData.company_uuid || 
-        !formData.candidate_name || !formData.interview_date || !formData.interview_time) {
-      return;
-    }
-
-    const success = await onSubmit(formData);
-    if (success) {
-      onCancel();
+    try {
+      const validated = interviewScheduleSchema.parse(formData);
+      
+      const success = await onSubmit(validated as CreateInterviewScheduleData);
+      if (success) {
+        onCancel();
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      }
     }
   };
 
@@ -97,7 +120,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                 value={formData.company_uuid}
                 onValueChange={(value) => handleInputChange('company_uuid', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.company_uuid ? "border-destructive" : ""}>
                   <SelectValue placeholder="Select Company" />
                 </SelectTrigger>
                 <SelectContent>
@@ -108,6 +131,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                   ))}
                 </SelectContent>
               </Select>
+              {errors.company_uuid && <p className="text-sm text-destructive mt-1">{errors.company_uuid}</p>}
             </div>
 
             <div className="space-y-2">
@@ -117,7 +141,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                 onValueChange={(value) => handleInputChange('vacancy_uuid', value)}
                 disabled={!formData.company_uuid}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.vacancy_uuid ? "border-destructive" : ""}>
                   <SelectValue placeholder={formData.company_uuid ? "Select Vacancy" : "Select Company First"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -128,6 +152,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                   ))}
                 </SelectContent>
               </Select>
+              {errors.vacancy_uuid && <p className="text-sm text-destructive mt-1">{errors.vacancy_uuid}</p>}
             </div>
           </div>
 
@@ -138,8 +163,9 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
               value={formData.candidate_name}
               onChange={(e) => handleInputChange('candidate_name', e.target.value)}
               placeholder="Enter candidate name"
-              required
+              className={errors.candidate_name ? "border-destructive" : ""}
             />
+            {errors.candidate_name && <p className="text-sm text-destructive mt-1">{errors.candidate_name}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -150,8 +176,9 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                 type="date"
                 value={formData.interview_date}
                 onChange={(e) => handleInputChange('interview_date', e.target.value)}
-                required
+                className={errors.interview_date ? "border-destructive" : ""}
               />
+              {errors.interview_date && <p className="text-sm text-destructive mt-1">{errors.interview_date}</p>}
             </div>
 
             <div className="space-y-2">
@@ -161,8 +188,9 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
                 type="time"
                 value={formData.interview_time}
                 onChange={(e) => handleInputChange('interview_time', e.target.value)}
-                required
+                className={errors.interview_time ? "border-destructive" : ""}
               />
+              {errors.interview_time && <p className="text-sm text-destructive mt-1">{errors.interview_time}</p>}
             </div>
           </div>
 
@@ -232,7 +260,9 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
               value={formData.meeting_link || ''}
               onChange={(e) => handleInputChange('meeting_link', e.target.value)}
               placeholder="Enter meeting link (e.g., Zoom, Teams)"
+              className={errors.meeting_link ? "border-destructive" : ""}
             />
+            {errors.meeting_link && <p className="text-sm text-destructive mt-1">{errors.meeting_link}</p>}
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
@@ -241,7 +271,7 @@ export function InterviewScheduleForm({ schedule, onSubmit, onCancel, loading = 
             </Button>
             <Button 
               type="submit" 
-              disabled={!isFormValid || loading}
+              disabled={loading}
             >
               {loading ? 'Saving...' : (schedule ? 'Update Schedule' : 'Create Schedule')}
             </Button>

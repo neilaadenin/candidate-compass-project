@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { companySchema, CompanyFormData } from "@/lib/validations";
+import { z } from "zod";
 
 interface Company {
   id: number;
@@ -52,6 +54,8 @@ export function CompanyForm({
     company_logo_url: "",
     company_base_url: "",
   });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isEditing = !!company;
 
@@ -77,20 +81,31 @@ export function CompanyForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
-    if (!formData.name.trim()) {
-      return;
+    try {
+      const validated = companySchema.parse(formData);
+      
+      await onSubmit({
+        name: validated.name,
+        company_description: validated.company_description || undefined,
+        company_value: validated.company_value || undefined,
+        company_logo_url: validated.company_logo_url || undefined,
+        company_base_url: validated.company_base_url || undefined,
+      });
+
+      onClose();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      }
     }
-
-    await onSubmit({
-      name: formData.name.trim(),
-      company_description: formData.company_description.trim() || undefined,
-      company_value: formData.company_value.trim() || undefined,
-      company_logo_url: formData.company_logo_url.trim() || undefined,
-      company_base_url: formData.company_base_url.trim() || undefined,
-    });
-
-    onClose();
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -98,6 +113,15 @@ export function CompanyForm({
       ...prev,
       [field]: value,
     }));
+    
+    // Clear error when user types
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   return (
@@ -123,8 +147,9 @@ export function CompanyForm({
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               placeholder="Enter company name"
-              required
+              className={errors.name ? "border-destructive" : ""}
             />
+            {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
@@ -135,7 +160,9 @@ export function CompanyForm({
               onChange={(e) => handleInputChange("company_description", e.target.value)}
               placeholder="Enter company description"
               rows={3}
+              className={errors.company_description ? "border-destructive" : ""}
             />
+            {errors.company_description && <p className="text-sm text-destructive">{errors.company_description}</p>}
           </div>
 
           <div className="space-y-2">
@@ -155,8 +182,9 @@ export function CompanyForm({
               value={formData.company_logo_url}
               onChange={(e) => handleInputChange("company_logo_url", e.target.value)}
               placeholder="Enter logo URL"
-              type="url"
+              className={errors.company_logo_url ? "border-destructive" : ""}
             />
+            {errors.company_logo_url && <p className="text-sm text-destructive">{errors.company_logo_url}</p>}
           </div>
 
           <div className="space-y-2">
@@ -166,15 +194,16 @@ export function CompanyForm({
               value={formData.company_base_url}
               onChange={(e) => handleInputChange("company_base_url", e.target.value)}
               placeholder="Enter base URL"
-              type="url"
+              className={errors.company_base_url ? "border-destructive" : ""}
             />
+            {errors.company_base_url && <p className="text-sm text-destructive">{errors.company_base_url}</p>}
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.name.trim()}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Saving..." : isEditing ? "Update Company" : "Create Company"}
             </Button>
           </DialogFooter>
