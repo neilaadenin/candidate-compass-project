@@ -141,7 +141,7 @@ export function AnalyzeCandidateDialog({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <FileText className="mr-2 h-4 w-4" />
-          Analisis Kandidat
+          Analysis
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">

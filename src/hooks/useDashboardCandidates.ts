@@ -11,6 +11,7 @@ interface DashboardCandidate {
   search_template: string | null;
   out_reach: string | null;
   vacancy_id: number | null;
+  match_percentage: number | null;
   created_at: string;
   vacancies?: {
     id: number;
@@ -74,6 +75,7 @@ export const useDashboardCandidates = (filters: FilterOptions) => {
         search_template: candidate.search_template ?? null,
         out_reach: candidate.created_at,
         vacancy_id: null, // No direct relationship in current schema
+        match_percentage: candidate.match_percentage ?? null,
         created_at: candidate.created_at || new Date().toISOString(),
         vacancies: undefined // No direct relationship in current schema
       }));

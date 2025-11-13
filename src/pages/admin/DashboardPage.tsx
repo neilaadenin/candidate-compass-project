@@ -228,7 +228,7 @@ export default function DashboardPage() {
               <p className="mt-2 text-gray-500">Loading candidates...</p>
             </div>
           ) : candidates.length > 0 ? (
-            <DashboardCandidateTable candidates={candidates} />
+            <DashboardCandidateTable candidates={candidates} onRefetch={() => window.location.reload()} />
           ) : companyFilter && vacancyFilter ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No candidates found for the selected filters.</p>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, ExternalLink, User } from "lucide-react";
+import { AnalyzeCandidateDialog } from "@/components/AnalyzeCandidateDialog";
 
 interface DashboardCandidate {
   id: string;
@@ -15,6 +16,7 @@ interface DashboardCandidate {
   search_template: string | null;
   out_reach: string | null;
   vacancy_id: number | null;
+  match_percentage: number | null;
   created_at: string;
   vacancies?: {
     id: number;
@@ -32,9 +34,10 @@ interface DashboardCandidate {
 
 interface DashboardCandidateTableProps {
   candidates: DashboardCandidate[];
+  onRefetch?: () => void;
 }
 
-export default function DashboardCandidateTable({ candidates }: DashboardCandidateTableProps) {
+export default function DashboardCandidateTable({ candidates, onRefetch }: DashboardCandidateTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredCandidates = candidates.filter(candidate =>
@@ -119,6 +122,15 @@ export default function DashboardCandidateTable({ candidates }: DashboardCandida
                           </div>
                         )}
                         
+                        {candidate.match_percentage !== null && (
+                          <div>
+                            <span className="font-medium">Match Score:</span>{' '}
+                            <Badge variant="secondary" className="text-xs">
+                              {candidate.match_percentage}%
+                            </Badge>
+                          </div>
+                        )}
+                        
                         <p className="text-xs text-gray-500">
                           Added: {formatDate(candidate.created_at)}
                         </p>
@@ -127,6 +139,11 @@ export default function DashboardCandidateTable({ candidates }: DashboardCandida
                   </div>
                   
                   <div className="flex gap-2">
+                    <AnalyzeCandidateDialog
+                      candidateId={candidate.id}
+                      candidateName={candidate.name}
+                      onAnalysisComplete={() => onRefetch?.()}
+                    />
                     {candidate.profile_url && (
                       <Button
                         variant="outline"
