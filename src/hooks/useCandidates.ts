@@ -13,6 +13,7 @@ interface Candidate {
   out_reach: string | null;
   vacancy_id: number | null;
   created_at: string;
+  match_percentage: number | null;
 }
 
 export const useCandidates = () => {
@@ -57,6 +58,7 @@ export const useCandidates = () => {
         out_reach: candidate.created_at, // Using created_at as fallback for out_reach
         vacancy_id: null, // Database doesn't have this field yet
         created_at: candidate.created_at || new Date().toISOString(),
+        match_percentage: candidate.match_percentage,
       }));
       
       setCandidates(transformedCandidates);

@@ -9,9 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AnalyzeCandidateDialog } from "@/components/AnalyzeCandidateDialog";
 
 export default function CandidatePage() {
-  const { candidates, loading } = useCandidates();
+  const { candidates, loading, refetch } = useCandidates();
 
   if (loading) {
     return <div>Loading candidates...</div>;
@@ -30,9 +31,11 @@ export default function CandidatePage() {
               <TableHead>Name</TableHead>
               <TableHead>Profile URL</TableHead>
               <TableHead>Connection Status</TableHead>
+              <TableHead>Match %</TableHead>
               <TableHead>Outreach Date</TableHead>
               <TableHead>Note Sent</TableHead>
               <TableHead>Created At</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -63,6 +66,21 @@ export default function CandidatePage() {
                   )}
                 </TableCell>
                 <TableCell>
+                  {candidate.match_percentage !== null ? (
+                    <Badge 
+                      variant={
+                        candidate.match_percentage >= 80 ? 'default' : 
+                        candidate.match_percentage >= 60 ? 'secondary' : 
+                        'outline'
+                      }
+                    >
+                      {candidate.match_percentage}%
+                    </Badge>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell>
                   {candidate.out_reach ? 
                     new Date(candidate.out_reach).toLocaleDateString() : 
                     "-"
@@ -73,6 +91,13 @@ export default function CandidatePage() {
                 </TableCell>
                 <TableCell>
                   {new Date(candidate.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <AnalyzeCandidateDialog
+                    candidateId={candidate.id}
+                    candidateName={candidate.name}
+                    onAnalysisComplete={refetch}
+                  />
                 </TableCell>
               </TableRow>
             ))}

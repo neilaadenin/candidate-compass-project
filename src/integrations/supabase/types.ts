@@ -44,6 +44,7 @@ export type Database = {
           connection_status: string | null
           created_at: string | null
           id: number
+          match_percentage: number | null
           note_sent: string | null
           profile_url: string | null
           search_template: string | null
@@ -54,6 +55,7 @@ export type Database = {
           connection_status?: string | null
           created_at?: string | null
           id?: number
+          match_percentage?: number | null
           note_sent?: string | null
           profile_url?: string | null
           search_template?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           connection_status?: string | null
           created_at?: string | null
           id?: number
+          match_percentage?: number | null
           note_sent?: string | null
           profile_url?: string | null
           search_template?: string | null
